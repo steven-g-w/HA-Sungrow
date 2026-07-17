@@ -1,0 +1,49 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect to iSolarCloud",
+        "description": "Enter the credentials of your iSolarCloud developer application and account. Create an application at https://developer-api.isolarcloud.com to obtain the app key and secret key.",
+        "data": {
+          "base_url": "API gateway",
+          "app_key": "App key",
+          "secret_key": "Secret key (x-access-key)",
+          "username": "iSolarCloud username",
+          "password": "iSolarCloud password",
+          "ps_id": "Plant ID (ps_id)"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Re-authenticate with iSolarCloud",
+        "description": "Your iSolarCloud credentials are no longer valid. Enter them again.",
+        "data": {
+          "app_key": "App key",
+          "secret_key": "Secret key (x-access-key)",
+          "username": "iSolarCloud username",
+          "password": "iSolarCloud password"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Authentication failed. Check the app key, secret key, username and password.",
+      "cannot_connect": "Could not connect to iSolarCloud or the plant ID is not accessible with this account."
+    },
+    "abort": {
+      "already_configured": "This plant is already configured.",
+      "reauth_successful": "Re-authentication was successful."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Sungrow iSolarCloud options",
+        "data": {
+          "scan_interval": "Polling interval (seconds)"
+        },
+        "data_description": {
+          "scan_interval": "iSolarCloud refreshes cloud data about every 5 minutes; polling faster returns the same values."
+        }
+      }
+    }
+  }
+}
