@@ -1,5 +1,10 @@
 # HA-Sungrow — Sungrow iSolarCloud integration for Home Assistant
 
+> [!WARNING]
+> **Work in progress.** This project is still being built and tested and is
+> **not ready for general use**. Expect breaking changes, renamed entities
+> and rough edges. Use at your own risk for now.
+
 A custom Home Assistant integration that reads data from a Sungrow solar
 system through the official
 [iSolarCloud OpenAPI](https://developer-api.isolarcloud.com/) (V1 account
