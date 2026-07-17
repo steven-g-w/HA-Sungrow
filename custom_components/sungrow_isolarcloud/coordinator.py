@@ -1,7 +1,8 @@
-"""Data update coordinator for the Sungrow iSolarCloud integration."""
+"""Data update coordinators for the Sungrow iSolarCloud integration."""
 
 from __future__ import annotations
 
+import asyncio
 from dataclasses import dataclass, field
 from datetime import timedelta
 import logging
@@ -9,17 +10,19 @@ from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import ConfigEntryAuthFailed
+from homeassistant.exceptions import ConfigEntryAuthFailed, HomeAssistantError
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .api import SungrowApiClient, SungrowApiError, SungrowAuthError
 from .const import (
     CONF_PS_ID,
     CONF_SCAN_INTERVAL,
+    CONTROL_REFRESH_INTERVAL,
     DEFAULT_SCAN_INTERVAL,
     DEVICE_TYPE_PLANT,
     DOMAIN,
 )
+from .controls import ALL_PARAM_CODES
 from .points import DEVICE_TYPE_POINTS, PointDef
 
 _LOGGER = logging.getLogger(__name__)
@@ -34,6 +37,7 @@ class SungrowDevice:
     name: str
     model: str | None = None
     serial: str | None = None
+    uuid: str | None = None
 
 
 @dataclass
@@ -119,12 +123,14 @@ class SungrowCoordinator(DataUpdateCoordinator[SungrowData]):
                 or raw.get("type_name")
                 or f"Device {ps_key}"
             )
+            uuid = raw.get("uuid")
             devices[str(ps_key)] = SungrowDevice(
                 ps_key=str(ps_key),
                 device_type=device_type,
                 name=str(name),
                 model=raw.get("device_model_code") or raw.get("device_model"),
                 serial=raw.get("device_sn") or raw.get("sn"),
+                uuid=str(uuid) if uuid is not None else None,
             )
         _LOGGER.debug(
             "Discovered %d device(s) for plant %s: %s",
@@ -252,3 +258,88 @@ class SungrowCoordinator(DataUpdateCoordinator[SungrowData]):
                 readings[point_id] = self._build_point_value(
                     point_id, raw, device_type
                 )
+
+
+class SungrowControlCoordinator(DataUpdateCoordinator[dict[str, dict[str, Any]]]):
+    """Reads (and writes) device parameters via paramSetting tasks.
+
+    Data maps param_code -> the parameter row returned by the API
+    (return_value, point_name, unit, set_precision, set_val_name, ...).
+    Each refresh spawns a cloud-to-device task, so the interval is long;
+    writes update the cache immediately from the task result.
+    """
+
+    config_entry: ConfigEntry
+
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        entry: ConfigEntry,
+        client: SungrowApiClient,
+        device: SungrowDevice,
+    ) -> None:
+        super().__init__(
+            hass,
+            _LOGGER,
+            config_entry=entry,
+            name=f"{DOMAIN}_control",
+            update_interval=timedelta(seconds=CONTROL_REFRESH_INTERVAL),
+        )
+        self.client = client
+        self.device = device
+        self.uuid: str = str(device.uuid)
+        self.ps_key: str = device.ps_key
+        # paramSetting tasks must not overlap (reads and writes share the
+        # device channel).
+        self._task_lock = asyncio.Lock()
+
+    async def _async_update_data(self) -> dict[str, dict[str, Any]]:
+        try:
+            async with self._task_lock:
+                rows = await self.client.async_read_params(
+                    self.uuid, list(ALL_PARAM_CODES)
+                )
+        except SungrowAuthError as err:
+            raise ConfigEntryAuthFailed(str(err)) from err
+        except SungrowApiError as err:
+            raise UpdateFailed(str(err)) from err
+        data = dict(self.data or {})
+        for row in rows:
+            code = row.get("param_code")
+            if code is not None:
+                data[str(code)] = row
+        return data
+
+    async def async_write(self, values: dict[str, str]) -> None:
+        """Write parameters to the device and update the cache."""
+        _LOGGER.debug("Writing device parameters: %s", values)
+        try:
+            async with self._task_lock:
+                rows = await self.client.async_write_params(self.uuid, values)
+        except SungrowAuthError as err:
+            raise ConfigEntryAuthFailed(str(err)) from err
+        except SungrowApiError as err:
+            raise HomeAssistantError(
+                f"Failed to write parameters {list(values)}: {err}"
+            ) from err
+        data = dict(self.data or {})
+        for row in rows:
+            code = row.get("param_code")
+            if code is None:
+                continue
+            code = str(code)
+            merged = {**data.get(code, {}), **row}
+            # Write results carry the new value in set_value; keep
+            # return_value (what entities read) in sync.
+            set_value = row.get("set_value")
+            if set_value not in (None, ""):
+                merged["return_value"] = set_value
+            data[code] = merged
+        # Fall back to the requested values for params the result omitted.
+        for code, value in values.items():
+            row = data.setdefault(str(code), {"param_code": str(code)})
+            if str(row.get("return_value", "")) != str(value) and (
+                str(code) not in {str(r.get("param_code")) for r in rows}
+            ):
+                row["return_value"] = str(value)
+        self.async_set_updated_data(data)

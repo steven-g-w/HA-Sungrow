@@ -17,6 +17,7 @@ from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
 from homeassistant.core import callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.selector import (
+    BooleanSelector,
     NumberSelector,
     NumberSelectorConfig,
     NumberSelectorMode,
@@ -33,6 +34,7 @@ from .const import (
     BASE_URLS,
     CONF_APP_KEY,
     CONF_BASE_URL,
+    CONF_ENABLE_CONTROL,
     CONF_PS_ID,
     CONF_SCAN_INTERVAL,
     CONF_SECRET_KEY,
@@ -189,6 +191,12 @@ class SungrowOptionsFlow(OptionsFlow):
                         unit_of_measurement="s",
                     )
                 ),
+                vol.Required(
+                    CONF_ENABLE_CONTROL,
+                    default=self.config_entry.options.get(
+                        CONF_ENABLE_CONTROL, False
+                    ),
+                ): BooleanSelector(),
             }
         )
         return self.async_show_form(step_id="init", data_schema=schema)

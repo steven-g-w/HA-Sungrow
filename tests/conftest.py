@@ -58,6 +58,8 @@ ENTRY_DATA = {
     CONF_PS_ID: PS_ID,
 }
 
+ESS_UUID = "9001"
+
 DEVICE_LIST: list[dict[str, Any]] = [
     {
         "ps_key": ESS_PS_KEY,
@@ -66,6 +68,7 @@ DEVICE_LIST: list[dict[str, Any]] = [
         "device_name": "SH10RT",
         "device_sn": "SN-ESS-1",
         "device_model_code": "SH10RT-V112",
+        "uuid": ESS_UUID,
     },
     {
         "ps_key": BATTERY_PS_KEY,
@@ -182,6 +185,56 @@ POINT_META: dict[int, list[dict[str, Any]]] = {
 }
 
 
+# Parameter read-back rows as returned by getParamSettingTask (subset of the
+# live response). Window 2 hour/minute codes are deliberately absent so tests
+# cover the "entity only created when both codes present" filter.
+CONTROL_ROWS: list[dict[str, Any]] = [
+    {
+        "param_code": "10001",
+        "return_value": "100",
+        "point_name": "SOC upper limit",
+        "unit": "%",
+        "set_precision": "0.1",
+        "set_val_name": None,
+        "set_val_name_val": None,
+    },
+    {
+        "param_code": "10002",
+        "return_value": "5",
+        "point_name": "SOC lower limit",
+        "unit": "%",
+    },
+    {
+        "param_code": "10004",
+        "return_value": "204",
+        "point_name": "Charging/discharging command",
+        "unit": "",
+        "set_val_name": "Charge|Discharge|Stop",
+        "set_val_name_val": "170|187|204",
+    },
+    {
+        "param_code": "10005",
+        "return_value": "0",
+        "point_name": "Charging/discharging power",
+        "unit": "kW",
+        "set_precision": "0.01",
+    },
+    {
+        "param_code": "10065",
+        "return_value": "85",
+        "point_name": "Forced charging",
+        "set_val_name": "Disable|Enable",
+        "set_val_name_val": "85|170",
+    },
+    {"param_code": "10067", "return_value": "1"},
+    {"param_code": "10068", "return_value": "30"},
+    {"param_code": "10069", "return_value": "5"},
+    {"param_code": "10070", "return_value": "0"},
+    {"param_code": "10071", "return_value": "0", "unit": "%"},
+    {"param_code": "10091", "return_value": "10.6", "unit": "kW"},
+]
+
+
 @pytest.fixture(autouse=True, scope="session")
 def pycares_shutdown_thread_started() -> None:
     """Start pycares' global shutdown thread before any test runs.
@@ -215,6 +268,18 @@ def mock_config_entry() -> MockConfigEntry:
     )
 
 
+@pytest.fixture
+def mock_config_entry_control() -> MockConfigEntry:
+    """A config entry with device control enabled."""
+    return MockConfigEntry(
+        domain=DOMAIN,
+        title=f"Sungrow plant {PS_ID}",
+        data=dict(ENTRY_DATA),
+        options={"enable_control": True},
+        unique_id=PS_ID,
+    )
+
+
 def _make_client() -> MagicMock:
     """Build a mock SungrowApiClient with canned responses."""
     client = MagicMock()
@@ -238,6 +303,19 @@ def _make_client() -> MagicMock:
         return list(POINT_META.get(device_type, []))
 
     client.async_get_open_point_info = AsyncMock(side_effect=_point_info)
+
+    client.async_param_setting_check = AsyncMock(return_value=True)
+    client.async_read_params = AsyncMock(
+        return_value=[dict(row) for row in CONTROL_ROWS]
+    )
+
+    async def _write_params(uuid: str, values: dict[str, str]) -> list[dict[str, Any]]:
+        return [
+            {"param_code": code, "set_value": str(value)}
+            for code, value in values.items()
+        ]
+
+    client.async_write_params = AsyncMock(side_effect=_write_params)
     return client
 
 

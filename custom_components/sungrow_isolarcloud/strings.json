@@ -38,10 +38,12 @@
       "init": {
         "title": "Sungrow iSolarCloud options",
         "data": {
-          "scan_interval": "Polling interval (seconds)"
+          "scan_interval": "Polling interval (seconds)",
+          "enable_control": "Enable device control (charge/discharge)"
         },
         "data_description": {
-          "scan_interval": "iSolarCloud refreshes cloud data about every 5 minutes; polling faster returns the same values."
+          "scan_interval": "iSolarCloud refreshes cloud data about every 5 minutes; polling faster returns the same values.",
+          "enable_control": "Creates entities that WRITE settings to your inverter (charge/discharge command and power, SOC limits, forced charging schedule). Leave off unless you want Home Assistant to control the system."
         }
       }
     }

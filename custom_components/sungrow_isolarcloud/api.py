@@ -26,6 +26,17 @@ LOGIN_PATH = "/openapi/login"
 DEVICE_LIST_PATH = "/openapi/getDeviceList"
 REALTIME_DATA_PATH = "/openapi/getDeviceRealTimeData"
 OPEN_POINT_INFO_PATH = "/openapi/getOpenPointInfo"
+PARAM_CHECK_PATH = "/openapi/paramSettingCheck"
+PARAM_SETTING_PATH = "/openapi/paramSetting"
+PARAM_TASK_PATH = "/openapi/getParamSettingTask"
+
+# set_type values for paramSetting/paramSettingCheck.
+SET_TYPE_WRITE = 0
+SET_TYPE_READ = 2
+
+# command_status of a parameter task.
+TASK_STATUS_RUNNING = 2
+TASK_STATUS_SUCCESS = 8
 
 # result_code values that may mean the token is expired, warranting one
 # re-login + retry. Verified live: an invalid token yields E900 "Unauthorized
@@ -44,6 +55,10 @@ class SungrowApiError(Exception):
 
 class SungrowAuthError(SungrowApiError):
     """Raised when authentication with iSolarCloud fails."""
+
+
+class SungrowControlError(SungrowApiError):
+    """Raised when a device parameter task is rejected, fails or times out."""
 
 
 class SungrowApiClient:
@@ -222,3 +237,108 @@ class SungrowApiClient:
             if not page_list or len(rows) >= row_count:
                 return rows
             page += 1
+
+    async def async_param_setting_check(self, uuid: str, set_type: int) -> bool:
+        """Return whether the device supports parameter read/write.
+
+        set_type: SET_TYPE_READ (2) for read-back, SET_TYPE_WRITE (0) for
+        updating parameters.
+        """
+        result = await self._authenticated_post(
+            PARAM_CHECK_PATH, {"set_type": set_type, "uuid": str(uuid)}
+        )
+        if str(result.get("check_result")) != "1":
+            return False
+        devices = result.get("dev_result_list") or []
+        return bool(devices) and str(devices[0].get("check_result")) == "1"
+
+    async def _async_run_param_task(
+        self,
+        uuid: str,
+        set_type: int,
+        param_list: list[dict[str, str]],
+        task_name: str,
+    ) -> list[dict[str, Any]]:
+        """Start a parameter task and poll it to completion.
+
+        paramSetting queues a task that talks to the physical device; the
+        result (including current values on read-back) arrives via
+        getParamSettingTask once command_status reaches 8.
+        """
+        result = await self._authenticated_post(
+            PARAM_SETTING_PATH,
+            {
+                "set_type": set_type,
+                "uuid": str(uuid),
+                "task_name": task_name,
+                "expire_second": 120,
+                "param_list": param_list,
+            },
+        )
+        device_result = (result.get("dev_result_list") or [{}])[0]
+        task_id = device_result.get("task_id")
+        if (
+            str(result.get("check_result")) != "1"
+            or str(device_result.get("code")) != "1"
+            or not task_id
+        ):
+            raise SungrowControlError(f"Parameter task rejected: {result!r}")
+        await asyncio.sleep(2)
+        for _ in range(20):
+            task = await self._authenticated_post(
+                PARAM_TASK_PATH, {"task_id": str(task_id), "uuid": str(uuid)}
+            )
+            try:
+                status = int(task.get("command_status"))
+            except (TypeError, ValueError):
+                status = -1
+            if status == TASK_STATUS_RUNNING:
+                await asyncio.sleep(3)
+                continue
+            if status == TASK_STATUS_SUCCESS:
+                return [
+                    row
+                    for row in task.get("param_list") or []
+                    if isinstance(row, dict)
+                ]
+            raise SungrowControlError(
+                f"Parameter task {task_id} failed (command_status={status}): "
+                f"{task.get('task_name')}"
+            )
+        raise SungrowControlError(f"Parameter task {task_id} timed out")
+
+    async def async_read_params(
+        self, uuid: str, param_codes: list[str]
+    ) -> list[dict[str, Any]]:
+        """Read current parameter values from the device.
+
+        The API rejects tasks with more than 10 parameters
+        ("Parameter:param_list is over 10"), so larger reads are split into
+        sequential tasks.
+        """
+        rows: list[dict[str, Any]] = []
+        for start in range(0, len(param_codes), 10):
+            chunk = param_codes[start : start + 10]
+            rows.extend(
+                await self._async_run_param_task(
+                    uuid,
+                    SET_TYPE_READ,
+                    [{"param_code": code, "set_value": ""} for code in chunk],
+                    "Home Assistant readback",
+                )
+            )
+        return rows
+
+    async def async_write_params(
+        self, uuid: str, values: dict[str, str]
+    ) -> list[dict[str, Any]]:
+        """Write parameter values to the device."""
+        return await self._async_run_param_task(
+            uuid,
+            SET_TYPE_WRITE,
+            [
+                {"param_code": code, "set_value": str(value)}
+                for code, value in values.items()
+            ],
+            "Home Assistant update",
+        )

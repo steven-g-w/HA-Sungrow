@@ -208,6 +208,46 @@ async def test_realtime_data_request_shape() -> None:
         assert body["token"] == "token-1"
 
 
+async def test_read_params_chunks_at_ten() -> None:
+    """Reads of more than 10 params are split into multiple tasks."""
+    codes = [str(10000 + i) for i in range(17)]
+    param_setting_url = f"{BASE_URL}/openapi/paramSetting"
+    task_url = f"{BASE_URL}/openapi/getParamSettingTask"
+
+    def _task_ok(chunk: list[str]) -> dict:
+        return {
+            "result_code": "1",
+            "result_data": {
+                "command_status": 8,
+                "param_list": [
+                    {"param_code": c, "return_value": "1"} for c in chunk
+                ],
+            },
+        }
+
+    start_ok = {
+        "result_code": "1",
+        "result_data": {
+            "check_result": "1",
+            "dev_result_list": [{"code": "1", "task_id": "42"}],
+        },
+    }
+    with aioresponses() as mock:
+        mock.post(LOGIN_URL, payload=_login_ok())
+        mock.post(param_setting_url, payload=start_ok)
+        mock.post(task_url, payload=_task_ok(codes[:10]))
+        mock.post(param_setting_url, payload=start_ok)
+        mock.post(task_url, payload=_task_ok(codes[10:]))
+        async with aiohttp.ClientSession() as session:
+            client = _client(session)
+            rows = await client.async_read_params("uuid-1", codes)
+        assert [r["param_code"] for r in rows] == codes
+        requests = mock.requests[("POST", URL(param_setting_url))]
+        assert len(requests) == 2
+        assert len(requests[0].kwargs["json"]["param_list"]) == 10
+        assert len(requests[1].kwargs["json"]["param_list"]) == 7
+
+
 async def test_open_point_info_paginates() -> None:
     """getOpenPointInfo fetches all pages until rowCount is reached."""
     page1 = [{"point_id": 13000 + i, "point_name": f"P{i}"} for i in range(100)]

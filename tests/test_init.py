@@ -143,7 +143,7 @@ async def test_new_points_add_entities_later(
         return {"device_point_list": []}
 
     mock_api_client.async_get_realtime_data = AsyncMock(side_effect=_realtime)
-    coordinator = mock_config_entry.runtime_data
+    coordinator = mock_config_entry.runtime_data.coordinator
     await coordinator.async_refresh()
     await hass.async_block_till_done()
 

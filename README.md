@@ -102,10 +102,27 @@ appearing later are added automatically.
 Energy sensors use `total_increasing` state class, so they can be used
 directly in the Home Assistant **Energy dashboard**.
 
+## Device control (optional, off by default)
+
+The integration can also *control* the hybrid inverter through the OpenAPI's
+parameter-setting endpoints. This is **disabled by default** — enable it via
+the integration's **Configure** dialog ("Enable device control"). When
+enabled (and the device passes the API's support check), these entities are
+added to the inverter device:
+
+- **Select**: charging/discharging command (Charge / Discharge / Stop)
+- **Number**: charging/discharging power, SOC upper/lower limit, forced
+  charging target SOC 1/2, max charging/discharging power
+- **Switch**: forced charging enable
+- **Time**: forced charging window 1/2 start and end times
+
+Writes are sent as iSolarCloud parameter tasks to the physical device and
+typically take a few seconds to complete. Use with care — these change how
+your inverter and battery operate.
+
 ## Roadmap
 
-- [ ] Control support (charge/discharge scheduling) where the OpenAPI allows
-      it — outside the MVP for now
+- [x] Control support (charge/discharge scheduling)
 - [ ] More device types (string inverters, meters, chargers)
 - [ ] Statistics/history backfill from the cloud
 
