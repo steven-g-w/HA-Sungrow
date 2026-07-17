@@ -203,6 +203,7 @@ CONTROL_ROWS: list[dict[str, Any]] = [
         "return_value": "5",
         "point_name": "SOC lower limit",
         "unit": "%",
+        "set_precision": "0.1",
     },
     {
         "param_code": "10004",

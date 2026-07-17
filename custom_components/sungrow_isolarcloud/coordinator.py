@@ -310,36 +310,62 @@ class SungrowControlCoordinator(DataUpdateCoordinator[dict[str, dict[str, Any]]]
                 data[str(code)] = row
         return data
 
+    def _display_to_raw(self, code: str, value: str) -> str:
+        """Convert a display value to the raw units the write API expects.
+
+        Read-backs report display units (e.g. SOC upper limit "100" = 100%),
+        but writes are applied in units of ``set_precision`` (0.1 for SOC
+        percentages, 0.01 for kW powers). Writing "95" to a 0.1-precision
+        param sets 9.5%, so 95% must be written as "950". Params with
+        precision 1 (enums, hours/minutes, target SOCs) pass through as-is.
+        """
+        row = (self.data or {}).get(code) or {}
+        try:
+            factor = float(row.get("set_precision"))
+        except (TypeError, ValueError):
+            return value
+        if factor in (0.0, 1.0):
+            return value
+        try:
+            display = float(value)
+        except ValueError:
+            return value
+        return str(int(round(display / factor)))
+
     async def async_write(self, values: dict[str, str]) -> None:
-        """Write parameters to the device and update the cache."""
-        _LOGGER.debug("Writing device parameters: %s", values)
+        """Write parameters to the device and update the cache.
+
+        ``values`` holds display-unit values; they are converted to raw
+        units for the API and cached back in display units.
+        """
+        raw_values = {
+            str(code): self._display_to_raw(str(code), str(value))
+            for code, value in values.items()
+        }
+        _LOGGER.debug("Writing device parameters: %s (raw: %s)", values, raw_values)
         try:
             async with self._task_lock:
-                rows = await self.client.async_write_params(self.uuid, values)
+                rows = await self.client.async_write_params(self.uuid, raw_values)
         except SungrowAuthError as err:
             raise ConfigEntryAuthFailed(str(err)) from err
         except SungrowApiError as err:
             raise HomeAssistantError(
                 f"Failed to write parameters {list(values)}: {err}"
             ) from err
+        returned = {
+            str(row.get("param_code")): row
+            for row in rows
+            if row.get("param_code") is not None
+        }
         data = dict(self.data or {})
-        for row in rows:
-            code = row.get("param_code")
-            if code is None:
-                continue
+        for code, display in values.items():
             code = str(code)
-            merged = {**data.get(code, {}), **row}
-            # Write results carry the new value in set_value; keep
-            # return_value (what entities read) in sync.
-            set_value = row.get("set_value")
-            if set_value not in (None, ""):
-                merged["return_value"] = set_value
+            merged = {
+                **data.get(code, {"param_code": code}),
+                **returned.get(code, {}),
+            }
+            # Cache the display value (what entities read), not the raw
+            # set_value echoed by the task result.
+            merged["return_value"] = str(display)
             data[code] = merged
-        # Fall back to the requested values for params the result omitted.
-        for code, value in values.items():
-            row = data.setdefault(str(code), {"param_code": str(code)})
-            if str(row.get("return_value", "")) != str(value) and (
-                str(code) not in {str(r.get("param_code")) for r in rows}
-            ):
-                row["return_value"] = str(value)
         self.async_set_updated_data(data)

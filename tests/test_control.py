@@ -88,24 +88,49 @@ async def test_control_unsupported_device(
     mock_api_client.async_read_params.assert_not_awaited()
 
 
-async def test_number_write(
+async def test_number_write_scales_by_precision(
     hass: HomeAssistant,
     mock_api_client: MagicMock,
     mock_config_entry_control: MockConfigEntry,
 ) -> None:
-    """Setting a number writes the parameter and updates the state."""
+    """Percent values are written in raw 0.1% units (95% -> "950").
+
+    Verified live: the write API interprets set_value in units of
+    set_precision, while read-backs report display units.
+    """
     await _setup(hass, mock_config_entry_control)
     number_id = _entity_id(hass, "number", f"{ESS_PS_KEY}_ctl_10001")
     await hass.services.async_call(
         "number",
         "set_value",
-        {"entity_id": number_id, "value": 90},
+        {"entity_id": number_id, "value": 95},
         blocking=True,
     )
     mock_api_client.async_write_params.assert_awaited_once_with(
-        ESS_UUID, {"10001": "90"}
+        ESS_UUID, {"10001": "950"}
     )
-    assert hass.states.get(number_id).state == "90.0"
+    # The cache/state keeps display units.
+    assert hass.states.get(number_id).state == "95.0"
+
+
+async def test_number_write_kw_precision(
+    hass: HomeAssistant,
+    mock_api_client: MagicMock,
+    mock_config_entry_control: MockConfigEntry,
+) -> None:
+    """kW values with 0.01 precision are written as raw hundredths."""
+    await _setup(hass, mock_config_entry_control)
+    number_id = _entity_id(hass, "number", f"{ESS_PS_KEY}_ctl_10005")
+    await hass.services.async_call(
+        "number",
+        "set_value",
+        {"entity_id": number_id, "value": 2.5},
+        blocking=True,
+    )
+    mock_api_client.async_write_params.assert_awaited_once_with(
+        ESS_UUID, {"10005": "250"}
+    )
+    assert hass.states.get(number_id).state == "2.5"
 
 
 async def test_select_write(
