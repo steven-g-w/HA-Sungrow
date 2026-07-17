@@ -63,7 +63,7 @@ STEP_USER_SCHEMA = vol.Schema(
         vol.Required(CONF_PASSWORD): TextSelector(
             TextSelectorConfig(type=TextSelectorType.PASSWORD)
         ),
-        vol.Required(CONF_PS_ID): str,
+        vol.Optional(CONF_PS_ID): str,
     }
 )
 
@@ -86,8 +86,15 @@ class SungrowConfigFlow(ConfigFlow, domain=DOMAIN):
 
     VERSION = 1
 
-    async def _async_validate(self, data: dict[str, Any]) -> str | None:
-        """Try to log in and list devices; return an error key or None."""
+    async def _async_validate(
+        self, data: dict[str, Any]
+    ) -> tuple[str | None, dict[str, Any] | None, str | None]:
+        """Validate credentials and resolve the plant.
+
+        Returns (error_key, data with ps_id filled in, plant name). When
+        ps_id is not provided it is auto-discovered from the account's plant
+        list (the first plant is used if there are several).
+        """
         client = SungrowApiClient(
             async_get_clientsession(self.hass),
             data[CONF_BASE_URL],
@@ -98,13 +105,33 @@ class SungrowConfigFlow(ConfigFlow, domain=DOMAIN):
         )
         try:
             await client.async_login()
-            await client.async_get_device_list(data[CONF_PS_ID])
+            plants = await client.async_get_power_station_list()
+            ps_id = str(data.get(CONF_PS_ID) or "").strip()
+            if not ps_id:
+                if not plants:
+                    return "no_plants", None, None
+                if len(plants) > 1:
+                    _LOGGER.info(
+                        "Account has %d plants; using the first one (%s)",
+                        len(plants),
+                        plants[0].get("ps_id"),
+                    )
+                ps_id = str(plants[0].get("ps_id"))
+            ps_name = next(
+                (
+                    str(plant["ps_name"])
+                    for plant in plants
+                    if str(plant.get("ps_id")) == ps_id and plant.get("ps_name")
+                ),
+                None,
+            )
+            await client.async_get_device_list(ps_id)
         except SungrowAuthError:
-            return "invalid_auth"
+            return "invalid_auth", None, None
         except SungrowApiError as err:
             _LOGGER.warning("Validation against iSolarCloud failed: %s", err)
-            return "cannot_connect"
-        return None
+            return "cannot_connect", None, None
+        return None, {**data, CONF_PS_ID: ps_id}, ps_name
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
@@ -112,13 +139,13 @@ class SungrowConfigFlow(ConfigFlow, domain=DOMAIN):
         """Handle the initial configuration step."""
         errors: dict[str, str] = {}
         if user_input is not None:
-            await self.async_set_unique_id(str(user_input[CONF_PS_ID]))
-            self._abort_if_unique_id_configured()
-            error = await self._async_validate(user_input)
+            error, data, ps_name = await self._async_validate(user_input)
             if error is None:
+                await self.async_set_unique_id(str(data[CONF_PS_ID]))
+                self._abort_if_unique_id_configured()
                 return self.async_create_entry(
-                    title=f"Sungrow plant {user_input[CONF_PS_ID]}",
-                    data=user_input,
+                    title=ps_name or f"Sungrow plant {data[CONF_PS_ID]}",
+                    data=data,
                 )
             errors["base"] = error
         return self.async_show_form(
@@ -143,9 +170,11 @@ class SungrowConfigFlow(ConfigFlow, domain=DOMAIN):
         reauth_entry = self._get_reauth_entry()
         if user_input is not None:
             data = {**reauth_entry.data, **user_input}
-            error = await self._async_validate(data)
+            error, validated, _ = await self._async_validate(data)
             if error is None:
-                return self.async_update_reload_and_abort(reauth_entry, data=data)
+                return self.async_update_reload_and_abort(
+                    reauth_entry, data=validated
+                )
             errors["base"] = error
         suggested = user_input or {
             CONF_APP_KEY: reauth_entry.data.get(CONF_APP_KEY),

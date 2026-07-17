@@ -59,6 +59,11 @@ ENTRY_DATA = {
 }
 
 ESS_UUID = "9001"
+PS_NAME = "Test Plant"
+
+POWER_STATION_LIST: list[dict[str, Any]] = [
+    {"ps_id": int(PS_ID), "ps_name": PS_NAME, "ps_type": 5},
+]
 
 DEVICE_LIST: list[dict[str, Any]] = [
     {
@@ -285,6 +290,9 @@ def _make_client() -> MagicMock:
     """Build a mock SungrowApiClient with canned responses."""
     client = MagicMock()
     client.async_login = AsyncMock()
+    client.async_get_power_station_list = AsyncMock(
+        return_value=[dict(p) for p in POWER_STATION_LIST]
+    )
     client.async_get_device_list = AsyncMock(return_value=list(DEVICE_LIST))
 
     async def _realtime(

@@ -19,13 +19,13 @@ from custom_components.sungrow_isolarcloud.const import (
     DOMAIN,
 )
 
-from .conftest import ENTRY_DATA, PS_ID
+from .conftest import ENTRY_DATA, PS_ID, PS_NAME
 
 
 async def test_user_flow_success(
     hass: HomeAssistant, mock_flow_client: MagicMock
 ) -> None:
-    """A valid submission creates a config entry."""
+    """A valid submission creates a config entry titled with the plant name."""
     result = await hass.config_entries.flow.async_init(
         DOMAIN, context={"source": config_entries.SOURCE_USER}
     )
@@ -36,11 +36,45 @@ async def test_user_flow_success(
         result["flow_id"], user_input=dict(ENTRY_DATA)
     )
     assert result["type"] is FlowResultType.CREATE_ENTRY
-    assert result["title"] == f"Sungrow plant {PS_ID}"
+    assert result["title"] == PS_NAME
     assert result["data"] == ENTRY_DATA
     assert result["result"].unique_id == PS_ID
     mock_flow_client.async_login.assert_awaited_once()
     mock_flow_client.async_get_device_list.assert_awaited_once_with(PS_ID)
+
+
+async def test_user_flow_discovers_ps_id(
+    hass: HomeAssistant, mock_flow_client: MagicMock
+) -> None:
+    """Leaving ps_id empty auto-discovers the first plant of the account."""
+    user_input = {k: v for k, v in ENTRY_DATA.items() if k != CONF_PS_ID}
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": config_entries.SOURCE_USER}
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], user_input=user_input
+    )
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    assert result["title"] == PS_NAME
+    assert result["data"][CONF_PS_ID] == PS_ID
+    assert result["result"].unique_id == PS_ID
+    mock_flow_client.async_get_device_list.assert_awaited_once_with(PS_ID)
+
+
+async def test_user_flow_no_plants(
+    hass: HomeAssistant, mock_flow_client: MagicMock
+) -> None:
+    """Empty ps_id with an empty plant list shows the no_plants error."""
+    mock_flow_client.async_get_power_station_list = AsyncMock(return_value=[])
+    user_input = {k: v for k, v in ENTRY_DATA.items() if k != CONF_PS_ID}
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": config_entries.SOURCE_USER}
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], user_input=user_input
+    )
+    assert result["type"] is FlowResultType.FORM
+    assert result["errors"] == {"base": "no_plants"}
 
 
 async def test_user_flow_invalid_auth(

@@ -74,7 +74,9 @@ charging/discharging power.
      gateways are listed and a custom URL can be typed).
    - **App key** and **Secret key** from your developer application.
    - **iSolarCloud username** and **password**.
-   - **Plant ID (`ps_id`)**.
+   - **Plant ID (`ps_id`)** — optional. Leave it empty and the integration
+     finds it from your account automatically (the first plant is used if
+     the account has several).
 3. Submit — the integration validates the credentials by logging in and
    listing the plant's devices, then creates the sensors.
 

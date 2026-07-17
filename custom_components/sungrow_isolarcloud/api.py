@@ -23,6 +23,7 @@ import aiohttp
 _LOGGER = logging.getLogger(__name__)
 
 LOGIN_PATH = "/openapi/login"
+POWER_STATION_LIST_PATH = "/openapi/getPowerStationList"
 DEVICE_LIST_PATH = "/openapi/getDeviceList"
 REALTIME_DATA_PATH = "/openapi/getDeviceRealTimeData"
 OPEN_POINT_INFO_PATH = "/openapi/getOpenPointInfo"
@@ -172,6 +173,16 @@ class SungrowApiClient:
                 f"{data.get('result_msg')}"
             )
         return data.get("result_data") or {}
+
+    async def async_get_power_station_list(self) -> list[dict[str, Any]]:
+        """Return the plants (power stations) visible to this account."""
+        result = await self._authenticated_post(
+            POWER_STATION_LIST_PATH, {"curPage": 1, "size": 100}
+        )
+        plants = result.get("pageList") or result.get("page_list") or []
+        if not isinstance(plants, list):
+            raise SungrowApiError(f"Unexpected power station list payload: {result!r}")
+        return plants
 
     async def async_get_device_list(self, ps_id: str) -> list[dict[str, Any]]:
         """Return the devices belonging to a plant."""

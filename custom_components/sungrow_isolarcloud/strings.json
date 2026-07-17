@@ -10,7 +10,10 @@
           "secret_key": "Secret key (x-access-key)",
           "username": "iSolarCloud username",
           "password": "iSolarCloud password",
-          "ps_id": "Plant ID (ps_id)"
+          "ps_id": "Plant ID (ps_id, optional)"
+        },
+        "data_description": {
+          "ps_id": "Leave empty to detect it automatically from your account. If the account has several plants, the first one is used."
         }
       },
       "reauth_confirm": {
@@ -26,7 +29,8 @@
     },
     "error": {
       "invalid_auth": "Authentication failed. Check the app key, secret key, username and password.",
-      "cannot_connect": "Could not connect to iSolarCloud or the plant ID is not accessible with this account."
+      "cannot_connect": "Could not connect to iSolarCloud or the plant ID is not accessible with this account.",
+      "no_plants": "No plants were found on this iSolarCloud account. Enter the plant ID manually."
     },
     "abort": {
       "already_configured": "This plant is already configured.",
