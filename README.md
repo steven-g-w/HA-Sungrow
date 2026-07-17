@@ -1,5 +1,9 @@
 # HA-Sungrow — Sungrow iSolarCloud integration for Home Assistant
 
+<p align="center">
+  <img src="images/logo.png" alt="HA-Sungrow logo" width="240">
+</p>
+
 > [!WARNING]
 > **Work in progress.** This project is still being built and tested and is
 > **not ready for general use**. Expect breaking changes, renamed entities
