@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Connect to iSolarCloud",
-        "description": "Enter the credentials of your iSolarCloud developer application and account. Create an application at https://developer-api.isolarcloud.com to obtain the app key and secret key.",
+        "description": "Enter the credentials of your iSolarCloud developer application and account. Create an application on the Sungrow developer portal (developer-api.isolarcloud.com) to obtain the app key and secret key.",
         "data": {
           "base_url": "API gateway",
           "app_key": "App key",

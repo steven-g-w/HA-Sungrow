@@ -36,3 +36,6 @@ jobs:
       - uses: hacs/action@main
         with:
           category: integration
+          # Brands only matters for inclusion in the default HACS store;
+          # this is distributed as a custom repository.
+          ignore: brands
