@@ -12,6 +12,7 @@ from yarl import URL
 from custom_components.sungrow_isolarcloud.api import (
     DEVICE_LIST_PATH,
     LOGIN_PATH,
+    OPEN_POINT_INFO_PATH,
     REALTIME_DATA_PATH,
     SungrowApiClient,
     SungrowApiError,
@@ -22,6 +23,7 @@ BASE_URL = "https://augateway.isolarcloud.com"
 LOGIN_URL = f"{BASE_URL}{LOGIN_PATH}"
 DEVICE_LIST_URL = f"{BASE_URL}{DEVICE_LIST_PATH}"
 REALTIME_URL = f"{BASE_URL}{REALTIME_DATA_PATH}"
+POINT_INFO_URL = f"{BASE_URL}{OPEN_POINT_INFO_PATH}"
 
 
 def _login_ok(token: str = "token-1") -> dict[str, Any]:
@@ -110,12 +112,15 @@ async def test_device_list_logs_in_first() -> None:
 
 
 async def test_expired_token_triggers_relogin_and_retry() -> None:
-    """A token error result code re-authenticates and retries once."""
+    """A token error result code re-authenticates and retries once.
+
+    An invalid/expired token yields result_code E900 (verified live).
+    """
     with aioresponses() as mock:
         mock.post(LOGIN_URL, payload=_login_ok("tok-old"))
         mock.post(
             DEVICE_LIST_URL,
-            payload={"result_code": "E00003", "result_msg": "token is expired"},
+            payload={"result_code": "E900", "result_msg": "Unauthorized access"},
         )
         mock.post(LOGIN_URL, payload=_login_ok("tok-new"))
         mock.post(
@@ -127,6 +132,24 @@ async def test_expired_token_triggers_relogin_and_retry() -> None:
             devices = await client.async_get_device_list("1")
             assert devices == []
             assert client._token == "tok-new"
+
+
+async def test_parameter_error_does_not_relogin() -> None:
+    """Parameter errors (009/010) raise immediately without re-login."""
+    with aioresponses() as mock:
+        mock.post(LOGIN_URL, payload=_login_ok())
+        mock.post(
+            DEVICE_LIST_URL,
+            payload={
+                "result_code": "009",
+                "result_msg": "ws.missing-parameter:ps_id",
+            },
+        )
+        async with aiohttp.ClientSession() as session:
+            client = _client(session)
+            with pytest.raises(SungrowApiError):
+                await client.async_get_device_list("1")
+        assert len(mock.requests[("POST", URL(LOGIN_URL))]) == 1
 
 
 async def test_persistent_api_error_raises() -> None:
@@ -183,3 +206,33 @@ async def test_realtime_data_request_shape() -> None:
         assert body["is_get_point_dict"] == "1"
         assert body["appkey"] == "app-key"
         assert body["token"] == "token-1"
+
+
+async def test_open_point_info_paginates() -> None:
+    """getOpenPointInfo fetches all pages until rowCount is reached."""
+    page1 = [{"point_id": 13000 + i, "point_name": f"P{i}"} for i in range(100)]
+    page2 = [{"point_id": 13100 + i, "point_name": f"P{100 + i}"} for i in range(50)]
+    with aioresponses() as mock:
+        mock.post(LOGIN_URL, payload=_login_ok())
+        mock.post(
+            POINT_INFO_URL,
+            payload={
+                "result_code": "1",
+                "result_data": {"rowCount": 150, "pageList": page1},
+            },
+        )
+        mock.post(
+            POINT_INFO_URL,
+            payload={
+                "result_code": "1",
+                "result_data": {"rowCount": 150, "pageList": page2},
+            },
+        )
+        async with aiohttp.ClientSession() as session:
+            client = _client(session)
+            rows = await client.async_get_open_point_info(14)
+        assert len(rows) == 150
+        requests = mock.requests[("POST", URL(POINT_INFO_URL))]
+        assert requests[0].kwargs["json"]["curPage"] == 1
+        assert requests[0].kwargs["json"]["type"] == "2"
+        assert requests[1].kwargs["json"]["curPage"] == 2

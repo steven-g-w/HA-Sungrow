@@ -15,7 +15,7 @@ from custom_components.sungrow_isolarcloud.api import (
 )
 from custom_components.sungrow_isolarcloud.const import DOMAIN
 
-from .conftest import ESS_PS_KEY, PLANT_PS_KEY
+from .conftest import BATTERY_PS_KEY, ESS_PS_KEY, PLANT_PS_KEY
 
 
 async def _setup(hass: HomeAssistant, entry: MockConfigEntry) -> None:
@@ -38,7 +38,7 @@ async def test_setup_creates_sensors(
     await _setup(hass, mock_config_entry)
     assert mock_config_entry.state is ConfigEntryState.LOADED
 
-    # Battery SoC from the ESS device, with API-provided name/unit.
+    # ESS battery SoC: raw fraction 0.55 scaled to percent via API metadata.
     soc_id = _entity_id(hass, f"{ESS_PS_KEY}_13141")
     assert soc_id is not None
     soc = hass.states.get(soc_id)
@@ -47,7 +47,7 @@ async def test_setup_creates_sensors(
     assert soc.attributes["unit_of_measurement"] == "%"
     assert soc.attributes["device_class"] == "battery"
 
-    # Battery charging power.
+    # Battery charging power, unit from API metadata (storage_unit W).
     charge_id = _entity_id(hass, f"{ESS_PS_KEY}_13126")
     assert charge_id is not None
     charge = hass.states.get(charge_id)
@@ -56,6 +56,7 @@ async def test_setup_creates_sensors(
     assert charge.attributes["device_class"] == "power"
 
     # Plant daily yield is an energy sensor usable in the energy dashboard.
+    # The plant has no API metadata in the fixtures -> catalog fallback.
     yield_id = _entity_id(hass, f"{PLANT_PS_KEY}_83022")
     assert yield_id is not None
     yield_state = hass.states.get(yield_id)
@@ -63,6 +64,26 @@ async def test_setup_creates_sensors(
     assert yield_state.attributes["unit_of_measurement"] == "Wh"
     assert yield_state.attributes["device_class"] == "energy"
     assert yield_state.attributes["state_class"] == "total_increasing"
+
+    # Plant battery SoC: fraction scaled to percent via catalog fallback.
+    plant_soc_id = _entity_id(hass, f"{PLANT_PS_KEY}_83252")
+    assert plant_soc_id is not None
+    plant_soc = hass.states.get(plant_soc_id)
+    assert plant_soc.state == "41.0"
+    assert plant_soc.attributes["unit_of_measurement"] == "%"
+
+    # Standalone battery device (type 43) SoC and voltage.
+    bat_soc_id = _entity_id(hass, f"{BATTERY_PS_KEY}_58604")
+    assert bat_soc_id is not None
+    bat_soc = hass.states.get(bat_soc_id)
+    assert bat_soc.state == "44.0"
+    assert bat_soc.attributes["unit_of_measurement"] == "%"
+    bat_volt_id = _entity_id(hass, f"{BATTERY_PS_KEY}_58601")
+    assert bat_volt_id is not None
+    bat_volt = hass.states.get(bat_volt_id)
+    assert bat_volt.state == "523.9"
+    assert bat_volt.attributes["unit_of_measurement"] == "V"
+    assert bat_volt.attributes["device_class"] == "voltage"
 
 
 async def test_no_entities_for_missing_values(
@@ -73,7 +94,7 @@ async def test_no_entities_for_missing_values(
     """Points reported as '--' or null do not create entities."""
     await _setup(hass, mock_config_entry)
     assert _entity_id(hass, f"{ESS_PS_KEY}_13112") is None  # value "--"
-    assert _entity_id(hass, f"{PLANT_PS_KEY}_83252") is None  # value null
+    assert _entity_id(hass, f"{PLANT_PS_KEY}_83024") is None  # value null
 
 
 async def test_devices_registered(
@@ -94,6 +115,12 @@ async def test_devices_registered(
     assert ess.serial_number == "SN-ESS-1"
     assert ess.via_device_id == plant.id
 
+    battery = registry.async_get_device(identifiers={(DOMAIN, BATTERY_PS_KEY)})
+    assert battery is not None
+    assert battery.name == "Battery1"
+    assert battery.model == "SBR256"
+    assert battery.via_device_id == plant.id
+
 
 async def test_new_points_add_entities_later(
     hass: HomeAssistant,
@@ -105,18 +132,15 @@ async def test_new_points_add_entities_later(
     assert _entity_id(hass, f"{ESS_PS_KEY}_13150") is not None
     assert _entity_id(hass, f"{ESS_PS_KEY}_13142") is None
 
-    # Next poll reports battery health too.
+    # Next poll reports battery health too (fraction, scaled via metadata).
     async def _realtime(device_type: int, ps_keys: list[str], points: list[str]):
-        if device_type == 11:
-            return {"device_point_list": []}
-        return {
-            "device_point_list": [
-                {"device_point": {"ps_key": ESS_PS_KEY, "p13142": "98"}}
-            ],
-            "point_dict": [
-                {"point_id": "13142", "point_name": "Battery SoH", "point_unit": "%"}
-            ],
-        }
+        if device_type == 14:
+            return {
+                "device_point_list": [
+                    {"device_point": {"ps_key": ESS_PS_KEY, "p13142": "0.98"}}
+                ]
+            }
+        return {"device_point_list": []}
 
     mock_api_client.async_get_realtime_data = AsyncMock(side_effect=_realtime)
     coordinator = mock_config_entry.runtime_data

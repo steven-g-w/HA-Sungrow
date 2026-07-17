@@ -46,6 +46,11 @@ async def async_setup_entry(
                     SungrowPointSensor(coordinator, device, point_id, reading)
                 )
         if new_entities:
+            # Plant entities first so the plant device exists in the registry
+            # before child devices reference it via via_device.
+            new_entities.sort(
+                key=lambda entity: entity.device_type != DEVICE_TYPE_PLANT
+            )
             _LOGGER.debug("Adding %d Sungrow sensor(s)", len(new_entities))
             async_add_entities(new_entities)
 
@@ -68,6 +73,7 @@ class SungrowPointSensor(CoordinatorEntity[SungrowCoordinator], SensorEntity):
         super().__init__(coordinator)
         self._ps_key = device.ps_key
         self._point_id = point_id
+        self.device_type = device.device_type
         self._attr_unique_id = f"{device.ps_key}_{point_id}"
 
         catalog = DEVICE_TYPE_POINTS.get(device.device_type, {})

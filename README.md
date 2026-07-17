@@ -12,11 +12,15 @@ charging/discharging power.
 - Config flow (UI) setup — no YAML required
 - Automatic discovery of the devices in your plant (`ps_id`)
 - Plant-level sensors (PV power, load power, daily/total yield, feed-in and
-  purchased energy, battery SoC, …)
-- Hybrid inverter / energy-storage sensors (battery charging power, battery
-  discharging power, battery level, battery health, purchased power, …)
-- Sensor names and units are taken from the iSolarCloud point dictionary when
-  the server provides them, with sensible fallbacks otherwise
+  purchased energy, battery SoC, ESS charge/discharge energy, …)
+- Hybrid inverter / energy-storage sensors (battery charging/discharging
+  power, battery level, battery health, battery temperature, purchased
+  power/energy, generation, …)
+- Battery/BMS sensors (voltage, current, temperature, SOC, SOH, total
+  charge/discharge)
+- Sensor names and units come from the iSolarCloud point metadata
+  (`getOpenPointInfo`) with built-in fallbacks; SOC/SOH ratio points are
+  automatically converted from fractions to percentages
 - Automatic token renewal and re-authentication flow
 - Configurable polling interval (default 5 minutes — the cloud only refreshes
   about that often)
@@ -73,12 +77,15 @@ The polling interval can be changed later via the integration's
 Sensors are created for every measuring point that returns a value, grouped
 into devices:
 
-- **Plant** (`<ps_id>_11_0_0`): PV power, load power, grid active power,
-  daily/total yield, daily/total feed-in energy, daily/total purchased
-  energy, battery SoC, daily charge/discharge energy, …
+- **Plant** (`<ps_id>_11_0_0`): plant power, load power, daily/total yield,
+  daily/total feed-in energy, daily/total purchased energy, battery SoC,
+  ESS daily/total charge and discharge energy, …
 - **Hybrid inverter / energy storage** (device type 14): total DC power,
-  battery charging/discharging power, battery level (SoC), battery state of
-  health, battery temperature, purchased power, export power, …
+  daily/total generation, battery charging/discharging power, battery level
+  (SoC), battery SOH, battery temperature, purchased power and energy,
+  feed-in power and energy, load consumption, …
+- **Battery / BMS** (device type 43, e.g. SBR-series): voltage, current,
+  temperature, SOC, health, total charge/discharge energy
 
 Points that your plant/app does not expose are simply skipped, and new points
 appearing later are added automatically.

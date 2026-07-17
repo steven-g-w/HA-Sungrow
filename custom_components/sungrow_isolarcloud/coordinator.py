@@ -20,7 +20,7 @@ from .const import (
     DEVICE_TYPE_PLANT,
     DOMAIN,
 )
-from .points import DEVICE_TYPE_POINTS
+from .points import DEVICE_TYPE_POINTS, PointDef
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -88,6 +88,9 @@ class SungrowCoordinator(DataUpdateCoordinator[SungrowData]):
         self.client = client
         self.ps_id: str = str(entry.data[CONF_PS_ID])
         self._devices: dict[str, SungrowDevice] | None = None
+        # Point metadata (name/units) per device type, fetched once from
+        # getOpenPointInfo. Maps device_type -> point_id -> metadata row.
+        self._point_meta: dict[int, dict[str, dict[str, Any]]] | None = None
 
     @property
     def plant_ps_key(self) -> str:
@@ -131,41 +134,107 @@ class SungrowCoordinator(DataUpdateCoordinator[SungrowData]):
         )
         return devices
 
+    async def _async_fetch_point_meta(
+        self, device_types: set[int]
+    ) -> dict[int, dict[str, dict[str, Any]]]:
+        """Fetch authoritative point names/units per device type.
+
+        Failures are tolerated (the catalog fallbacks are used instead), but
+        auth errors propagate.
+        """
+        meta: dict[int, dict[str, dict[str, Any]]] = {}
+        for device_type in device_types:
+            try:
+                rows = await self.client.async_get_open_point_info(device_type)
+            except SungrowAuthError:
+                raise
+            except SungrowApiError as err:
+                _LOGGER.warning(
+                    "Could not fetch point metadata for device type %s "
+                    "(falling back to built-in names/units): %s",
+                    device_type,
+                    err,
+                )
+                meta[device_type] = {}
+                continue
+            meta[device_type] = {
+                str(row["point_id"]): row
+                for row in rows
+                if row.get("point_id") is not None
+            }
+            _LOGGER.debug(
+                "Fetched %d point metadata rows for device type %s",
+                len(meta[device_type]),
+                device_type,
+            )
+        return meta
+
     async def _async_update_data(self) -> SungrowData:
         try:
             if self._devices is None:
                 self._devices = await self._async_discover_devices()
+            device_types = {
+                d.device_type
+                for d in self._devices.values()
+                if d.device_type in DEVICE_TYPE_POINTS
+            }
+            if self._point_meta is None:
+                self._point_meta = await self._async_fetch_point_meta(device_types)
 
             points: dict[str, dict[str, PointValue]] = {}
-            for device_type, catalog in DEVICE_TYPE_POINTS.items():
+            for device_type in device_types:
+                catalog = DEVICE_TYPE_POINTS[device_type]
                 ps_keys = [
                     d.ps_key
                     for d in self._devices.values()
                     if d.device_type == device_type
                 ]
-                if not ps_keys:
-                    continue
                 result = await self.client.async_get_realtime_data(
                     device_type, ps_keys, list(catalog)
                 )
-                self._merge_result(points, result)
+                self._merge_result(points, result, device_type)
             return SungrowData(devices=dict(self._devices), points=points)
         except SungrowAuthError as err:
             raise ConfigEntryAuthFailed(str(err)) from err
         except SungrowApiError as err:
             raise UpdateFailed(str(err)) from err
 
+    def _build_point_value(
+        self, point_id: str, raw: Any, device_type: int
+    ) -> PointValue:
+        """Combine a raw reading with metadata into a PointValue."""
+        value = _clean_value(raw)
+        meta = (self._point_meta or {}).get(device_type, {}).get(point_id)
+        name: str | None = None
+        unit: str | None = None
+        scale = 1.0
+        if meta is not None:
+            name = meta.get("point_name")
+            storage_unit = (meta.get("storage_unit") or "").strip()
+            show_unit = (meta.get("show_unit") or "").strip()
+            if not storage_unit and show_unit == "%":
+                # Ratio points (SOC, SOH, PR) are 0..1 fractions.
+                unit = "%"
+                scale = 100.0
+            else:
+                unit = storage_unit or None
+        else:
+            catalog_def: PointDef | None = DEVICE_TYPE_POINTS.get(
+                device_type, {}
+            ).get(point_id)
+            if catalog_def is not None:
+                scale = catalog_def.scale
+        if isinstance(value, float) and scale != 1.0:
+            value = round(value * scale, 10)
+        return PointValue(point_id=point_id, value=value, name=name, unit=unit)
+
     def _merge_result(
-        self, points: dict[str, dict[str, PointValue]], result: dict[str, Any]
+        self,
+        points: dict[str, dict[str, PointValue]],
+        result: dict[str, Any],
+        device_type: int,
     ) -> None:
         """Parse a getDeviceRealTimeData result into the points mapping."""
-        # Optional metadata about each point (name/unit), present when the
-        # server honours is_get_point_dict.
-        meta: dict[str, dict[str, Any]] = {}
-        for entry in result.get("point_dict") or []:
-            if isinstance(entry, dict) and entry.get("point_id") is not None:
-                meta[str(entry["point_id"])] = entry
-
         for item in result.get("device_point_list") or []:
             device_point = item.get("device_point") if isinstance(item, dict) else None
             if not isinstance(device_point, dict):
@@ -180,10 +249,6 @@ class SungrowCoordinator(DataUpdateCoordinator[SungrowData]):
                 if not key.startswith("p") or not key[1:].isdigit():
                     continue
                 point_id = key[1:]
-                point_meta = meta.get(point_id, {})
-                readings[point_id] = PointValue(
-                    point_id=point_id,
-                    value=_clean_value(raw),
-                    name=point_meta.get("point_name"),
-                    unit=point_meta.get("point_unit") or point_meta.get("unit"),
+                readings[point_id] = self._build_point_value(
+                    point_id, raw, device_type
                 )

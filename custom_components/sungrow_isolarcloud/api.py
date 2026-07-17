@@ -25,10 +25,15 @@ _LOGGER = logging.getLogger(__name__)
 LOGIN_PATH = "/openapi/login"
 DEVICE_LIST_PATH = "/openapi/getDeviceList"
 REALTIME_DATA_PATH = "/openapi/getDeviceRealTimeData"
+OPEN_POINT_INFO_PATH = "/openapi/getOpenPointInfo"
 
-# result_code values that mean the token is missing/expired and a re-login
-# should be attempted.
-TOKEN_ERROR_CODES = {"009", "010", "E00003", "1005"}
+# result_code values that may mean the token is expired, warranting one
+# re-login + retry. Verified live: an invalid token yields E900 "Unauthorized
+# access" (E900 is also returned for endpoints the app has no permission
+# for, so a retry can be futile — but it only costs one extra login).
+# "009" is a missing-parameter error and "010" an invalid-parameter error;
+# they must NOT trigger re-authentication.
+TOKEN_ERROR_CODES = {"E900"}
 
 REQUEST_TIMEOUT = aiohttp.ClientTimeout(total=30)
 
@@ -186,3 +191,34 @@ class SungrowApiClient:
                 "is_get_point_dict": "1",
             },
         )
+
+    async def async_get_open_point_info(
+        self, device_type: int
+    ) -> list[dict[str, Any]]:
+        """Return metadata (name, units) for all measuring points of a type.
+
+        Each row contains ``point_id``, ``point_name``, ``storage_unit`` (the
+        unit of raw values) and ``show_unit``. Ratio points (SOC/SOH/PR) have
+        an empty storage unit, a ``%`` show unit, and raw values in 0..1.
+        """
+        rows: list[dict[str, Any]] = []
+        page = 1
+        while True:
+            result = await self._authenticated_post(
+                OPEN_POINT_INFO_PATH,
+                {
+                    "device_type": str(device_type),
+                    "type": "2",  # 2 = measuring points (1 = fault codes)
+                    "curPage": page,
+                    "size": 100,
+                },
+            )
+            page_list = result.get("pageList") or []
+            rows.extend(row for row in page_list if isinstance(row, dict))
+            try:
+                row_count = int(result.get("rowCount") or 0)
+            except (TypeError, ValueError):
+                row_count = 0
+            if not page_list or len(rows) >= row_count:
+                return rows
+            page += 1

@@ -1,4 +1,10 @@
-"""Shared fixtures for the Sungrow iSolarCloud tests."""
+"""Shared fixtures for the Sungrow iSolarCloud tests.
+
+Response shapes mirror the live iSolarCloud OpenAPI (verified against a real
+SH10RT + SBR256 system): getDeviceRealTimeData returns no point_dict, ratio
+points (SOC/SOH) are 0..1 fractions, and point names/units come from
+getOpenPointInfo (storage_unit = unit of raw values).
+"""
 
 from __future__ import annotations
 
@@ -16,14 +22,32 @@ from custom_components.sungrow_isolarcloud.const import (
     CONF_BASE_URL,
     CONF_PS_ID,
     CONF_SECRET_KEY,
+    DEVICE_TYPE_BATTERY,
     DEVICE_TYPE_ENERGY_STORAGE,
     DEVICE_TYPE_PLANT,
     DOMAIN,
 )
 
+# pytest-homeassistant-custom-component blocks socket *creation* for every
+# test. On Windows the asyncio event loop itself needs a loopback socketpair,
+# so no async test can even start. Neutralise the creation block on Windows
+# only; the plugin's loopback-only connect guard (socket_allow_hosts) still
+# applies, so tests cannot reach the network. aiodns (aiohttp's resolver)
+# additionally requires a selector event loop on Windows.
+if sys.platform == "win32":
+    import asyncio
+    from asyncio import events
+
+    pytest_socket.disable_socket = lambda allow_unix_socket=False: None
+    # The plugin replaces asyncio.set_event_loop_policy with a no-op after
+    # installing HassEventLoopPolicy (proactor-based on Windows), so go
+    # through asyncio.events to actually install the selector policy.
+    events.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+
 PS_ID = "999001"
 PLANT_PS_KEY = f"{PS_ID}_11_0_0"
 ESS_PS_KEY = f"{PS_ID}_14_1_1"
+BATTERY_PS_KEY = f"{PS_ID}_43_2_1"
 
 ENTRY_DATA = {
     CONF_BASE_URL: "https://augateway.isolarcloud.com",
@@ -41,7 +65,15 @@ DEVICE_LIST: list[dict[str, Any]] = [
         "device_type": DEVICE_TYPE_ENERGY_STORAGE,
         "device_name": "SH10RT",
         "device_sn": "SN-ESS-1",
-        "device_model_code": "SH10RT",
+        "device_model_code": "SH10RT-V112",
+    },
+    {
+        "ps_key": BATTERY_PS_KEY,
+        "ps_id": PS_ID,
+        "device_type": DEVICE_TYPE_BATTERY,
+        "device_name": "Battery1",
+        "device_sn": "SN-BAT-1",
+        "device_model_code": "SBR256",
     },
     # A device type we have no point catalog for; must be ignored gracefully.
     {
@@ -61,15 +93,12 @@ PLANT_REALTIME: dict[str, Any] = {
                 "p83022": "12345",  # daily yield Wh
                 "p83033": "4321.5",  # PV power W
                 "p83106": "789",  # load power W
-                "p83252": None,  # battery SoC not reported at plant level
+                "p83252": "0.41",  # battery SoC as fraction
+                "p83024": None,  # not reported -> no entity
             }
         }
     ],
-    "point_dict": [
-        {"point_id": "83022", "point_name": "Daily Yield", "point_unit": "Wh"},
-        {"point_id": "83033", "point_name": "Plant PV Power", "point_unit": "W"},
-        {"point_id": "83106", "point_name": "Load Power", "point_unit": "W"},
-    ],
+    "fail_ps_key_list": [],
 }
 
 ESS_REALTIME: dict[str, Any] = {
@@ -77,44 +106,80 @@ ESS_REALTIME: dict[str, Any] = {
         {
             "device_point": {
                 "ps_key": ESS_PS_KEY,
-                "p13141": "55.0",  # battery SoC %
+                "p13141": "0.55",  # battery SoC as fraction
                 "p13126": "2500",  # charging power W
                 "p13150": "0",  # discharging power W
                 "p13112": "--",  # not reported -> no entity
             }
         }
     ],
-    "point_dict": [
-        {"point_id": "13141", "point_name": "Battery Level", "point_unit": "%"},
+    "fail_ps_key_list": [],
+}
+
+BATTERY_REALTIME: dict[str, Any] = {
+    "device_point_list": [
         {
-            "point_id": "13126",
-            "point_name": "Battery Charging Power",
-            "point_unit": "W",
+            "device_point": {
+                "ps_key": BATTERY_PS_KEY,
+                "p58604": "0.44",  # battery SoC as fraction
+                "p58601": "523.9",  # battery voltage V
+            }
+        }
+    ],
+    "fail_ps_key_list": [],
+}
+
+# getOpenPointInfo metadata. Plant (11) deliberately has none so the tests
+# cover the catalog fallback path (names, units and SOC scaling).
+POINT_META: dict[int, list[dict[str, Any]]] = {
+    DEVICE_TYPE_PLANT: [],
+    DEVICE_TYPE_ENERGY_STORAGE: [
+        {
+            "point_id": 13141,
+            "point_name": "Battery level (SOC)",
+            "storage_unit": "",
+            "show_unit": "%",
         },
         {
-            "point_id": "13150",
-            "point_name": "Battery Discharging Power",
-            "point_unit": "W",
+            "point_id": 13142,
+            "point_name": "Battery SOH",
+            "storage_unit": "",
+            "show_unit": "%",
+        },
+        {
+            "point_id": 13126,
+            "point_name": "Battery charging power",
+            "storage_unit": "W",
+            "show_unit": "kW",
+        },
+        {
+            "point_id": 13150,
+            "point_name": "Battery discharging power",
+            "storage_unit": "W",
+            "show_unit": "kW",
+        },
+        {
+            "point_id": 13112,
+            "point_name": "Daily generation",
+            "storage_unit": "Wh",
+            "show_unit": "kWh",
+        },
+    ],
+    DEVICE_TYPE_BATTERY: [
+        {
+            "point_id": 58604,
+            "point_name": "Battery SOC",
+            "storage_unit": "",
+            "show_unit": "%",
+        },
+        {
+            "point_id": 58601,
+            "point_name": "Battery voltage",
+            "storage_unit": "V",
+            "show_unit": "V",
         },
     ],
 }
-
-
-# pytest-homeassistant-custom-component blocks socket *creation* for every
-# test. On Windows the asyncio event loop itself needs a loopback socketpair,
-# so no async test can even start. Neutralise the creation block on Windows
-# only; the plugin's loopback-only connect guard (socket_allow_hosts) still
-# applies, so tests cannot reach the network. aiodns (aiohttp's resolver)
-# additionally requires a selector event loop on Windows.
-if sys.platform == "win32":
-    import asyncio
-    from asyncio import events
-
-    pytest_socket.disable_socket = lambda allow_unix_socket=False: None
-    # The plugin replaces asyncio.set_event_loop_policy with a no-op after
-    # installing HassEventLoopPolicy (proactor-based on Windows), so go
-    # through asyncio.events to actually install the selector policy.
-    events.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 
 @pytest.fixture(autouse=True, scope="session")
@@ -163,9 +228,16 @@ def _make_client() -> MagicMock:
             return PLANT_REALTIME
         if device_type == DEVICE_TYPE_ENERGY_STORAGE:
             return ESS_REALTIME
+        if device_type == DEVICE_TYPE_BATTERY:
+            return BATTERY_REALTIME
         return {"device_point_list": []}
 
     client.async_get_realtime_data = AsyncMock(side_effect=_realtime)
+
+    async def _point_info(device_type: int) -> list[dict[str, Any]]:
+        return list(POINT_META.get(device_type, []))
+
+    client.async_get_open_point_info = AsyncMock(side_effect=_point_info)
     return client
 
 

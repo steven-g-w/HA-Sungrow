@@ -1,11 +1,14 @@
 """Measuring point catalog for the Sungrow iSolarCloud integration.
 
-Point ids are the numeric measuring point identifiers used by the
-``getDeviceRealTimeData`` endpoint. The catalog below covers the plant
-(device_type 11) and hybrid/energy-storage (device_type 14) points that are
-most useful in Home Assistant. When the API returns point metadata
-(``point_dict``), the name and unit reported by the server take precedence
-over the fallbacks defined here.
+The catalog determines *which* points are polled per device type and carries
+Home Assistant metadata (device class, state class) plus fallback names and
+units. Authoritative names and units are fetched at runtime from the
+``getOpenPointInfo`` endpoint (verified live against a SH10RT + SBR256
+system); the fallbacks below match that endpoint's output.
+
+Values are returned in ``storage_unit`` (W, Wh, ℃, V, A, …). Ratio points
+such as SOC/SOH have an empty storage unit and a ``show_unit`` of ``%`` —
+the raw value is a 0..1 fraction and must be scaled by 100.
 """
 
 from __future__ import annotations
@@ -15,23 +18,32 @@ from dataclasses import dataclass
 from homeassistant.components.sensor import SensorDeviceClass, SensorStateClass
 from homeassistant.const import (
     PERCENTAGE,
+    UnitOfElectricCurrent,
+    UnitOfElectricPotential,
     UnitOfEnergy,
     UnitOfPower,
     UnitOfTemperature,
     UnitOfTime,
 )
 
-from .const import DEVICE_TYPE_ENERGY_STORAGE, DEVICE_TYPE_PLANT
+from .const import (
+    DEVICE_TYPE_BATTERY,
+    DEVICE_TYPE_ENERGY_STORAGE,
+    DEVICE_TYPE_PLANT,
+)
 
 
 @dataclass(frozen=True)
 class PointDef:
-    """Fallback metadata for a measuring point."""
+    """HA metadata and fallbacks for a measuring point."""
 
     name: str
     unit: str | None = None
     device_class: SensorDeviceClass | None = None
     state_class: SensorStateClass | None = SensorStateClass.MEASUREMENT
+    # Multiplier applied to the raw value when the API's point metadata is
+    # unavailable (e.g. SOC fractions -> percent).
+    scale: float = 1.0
 
 
 def _power(name: str) -> PointDef:
@@ -52,41 +64,55 @@ def _energy(name: str) -> PointDef:
     )
 
 
+def _soc(name: str) -> PointDef:
+    return PointDef(
+        name,
+        PERCENTAGE,
+        SensorDeviceClass.BATTERY,
+        SensorStateClass.MEASUREMENT,
+        scale=100,
+    )
+
+
+def _ratio(name: str) -> PointDef:
+    return PointDef(
+        name,
+        PERCENTAGE,
+        None,
+        SensorStateClass.MEASUREMENT,
+        scale=100,
+    )
+
+
 # Plant level (device_type 11, ps_key "<ps_id>_11_0_0").
 PLANT_POINTS: dict[str, PointDef] = {
-    "83022": _energy("Daily yield"),
-    "83024": _energy("Total yield"),
-    "83033": _power("PV power"),
+    "83022": _energy("Plant daily yield"),
+    "83024": _energy("Plant total yield"),
+    "83033": _power("Plant power"),
     "83106": _power("Load power"),
-    "83102": _energy("Daily purchased energy"),
-    "83105": _energy("Total purchased energy"),
-    "83072": _energy("Daily feed-in energy"),
+    "83072": _energy("Feed-in energy today"),
     "83075": _energy("Total feed-in energy"),
+    "83102": _energy("Energy purchased today"),
+    "83105": _energy("Total purchased energy"),
+    "83097": _energy("Daily PV energy consumed by loads"),
+    "83100": _energy("Total PV energy consumed by loads"),
     "83118": _energy("Daily load consumption"),
     "83124": _energy("Total load consumption"),
-    "83097": _energy("Daily direct energy consumption"),
-    "83100": _energy("Total direct energy consumption"),
-    "83252": PointDef(
-        "Battery level (SoC)",
-        PERCENTAGE,
-        SensorDeviceClass.BATTERY,
+    "83252": _soc("Battery level (SOC)"),
+    "83322": _energy("ESS daily charge"),
+    "83323": _energy("ESS daily discharge"),
+    "83324": _energy("ESS total charge"),
+    "83325": _energy("ESS total discharge"),
+    "83326": _power("ESS active power"),
+    "83327": PointDef(
+        "ESS remaining energy",
+        UnitOfEnergy.WATT_HOUR,
+        SensorDeviceClass.ENERGY_STORAGE,
         SensorStateClass.MEASUREMENT,
     ),
-    "83129": PointDef(
-        "Battery SoC",
-        PERCENTAGE,
-        SensorDeviceClass.BATTERY,
-        SensorStateClass.MEASUREMENT,
-    ),
-    "83046": _power("PCS total active power"),
-    "83052": _power("Total load active power"),
-    "83067": _power("Total PV active power"),
-    "83549": _power("Grid active power"),
-    "83238": _power("Energy storage active power"),
-    "83243": _energy("Daily charge energy"),
-    "83244": _energy("Daily discharge energy"),
-    "83241": _energy("Total charge energy"),
-    "83242": _energy("Total discharge energy"),
+    "83328": _power("Grid active power"),
+    "83329": _power("PV active power"),
+    "83330": _power("Load active power"),
     "83025": PointDef(
         "Plant equivalent hours",
         UnitOfTime.HOURS,
@@ -98,38 +124,65 @@ PLANT_POINTS: dict[str, PointDef] = {
 # Hybrid inverter / energy storage system (device_type 14).
 ENERGY_STORAGE_POINTS: dict[str, PointDef] = {
     "13003": _power("Total DC power"),
-    "13011": _energy("Daily PV yield"),
-    "13112": _energy("Daily feed-in energy"),
-    "13119": _power("Total load active power"),
-    "13121": _power("Total export active power"),
+    "13011": _power("Total active power"),
+    "13112": _energy("Daily generation"),
+    "13134": _energy("Total generation"),
+    "13116": _energy("Daily PV energy consumed by loads"),
+    "13137": _energy("Total PV energy consumed by loads"),
+    "13119": _power("Load power"),
+    "13121": _power("Feed-in power"),
+    "13122": _energy("Feed-in energy today"),
     "13126": _power("Battery charging power"),
-    "13141": PointDef(
-        "Battery level (SoC)",
-        PERCENTAGE,
-        SensorDeviceClass.BATTERY,
-        SensorStateClass.MEASUREMENT,
-    ),
-    "13142": PointDef(
-        "Battery state of health",
-        PERCENTAGE,
-        None,
-        SensorStateClass.MEASUREMENT,
-    ),
+    "13150": _power("Battery discharging power"),
+    "13141": _soc("Battery level (SOC)"),
+    "13142": _ratio("Battery SOH"),
     "13143": PointDef(
         "Battery temperature",
         UnitOfTemperature.CELSIUS,
         SensorDeviceClass.TEMPERATURE,
         SensorStateClass.MEASUREMENT,
     ),
-    "13149": _power("Purchased power"),
-    "13150": _power("Battery discharging power"),
-    "13134": _power("Total active power"),
+    "13149": _power("Grid energy purchasing power"),
+    "13147": _energy("Energy purchased today"),
+    "13148": _energy("Total purchased energy"),
+    "13028": _energy("Battery charge today"),
+    "13029": _energy("Battery discharge today"),
+    "13035": _energy("Total battery discharge"),
+    "13199": _energy("Daily load consumption"),
+    "13130": _energy("Total load consumption"),
+}
+
+# Battery / BMS (device_type 43).
+BATTERY_POINTS: dict[str, PointDef] = {
+    "58601": PointDef(
+        "Battery voltage",
+        UnitOfElectricPotential.VOLT,
+        SensorDeviceClass.VOLTAGE,
+        SensorStateClass.MEASUREMENT,
+    ),
+    "58602": PointDef(
+        "Battery current",
+        UnitOfElectricCurrent.AMPERE,
+        SensorDeviceClass.CURRENT,
+        SensorStateClass.MEASUREMENT,
+    ),
+    "58603": PointDef(
+        "Battery temperature",
+        UnitOfTemperature.CELSIUS,
+        SensorDeviceClass.TEMPERATURE,
+        SensorStateClass.MEASUREMENT,
+    ),
+    "58604": _soc("Battery SOC"),
+    "58605": _ratio("Battery health"),
+    "58606": _energy("Total battery charge"),
+    "58607": _energy("Total battery discharge"),
 }
 
 # Points queried per device_type.
 DEVICE_TYPE_POINTS: dict[int, dict[str, PointDef]] = {
     DEVICE_TYPE_PLANT: PLANT_POINTS,
     DEVICE_TYPE_ENERGY_STORAGE: ENERGY_STORAGE_POINTS,
+    DEVICE_TYPE_BATTERY: BATTERY_POINTS,
 }
 
 # Mapping of unit strings returned by the API to Home Assistant units.
@@ -144,6 +197,10 @@ API_UNIT_MAP: dict[str, str] = {
     "℃": UnitOfTemperature.CELSIUS,
     "°C": UnitOfTemperature.CELSIUS,
     "h": UnitOfTime.HOURS,
+    "H": UnitOfTime.HOURS,
+    "V": UnitOfElectricPotential.VOLT,
+    "mV": UnitOfElectricPotential.MILLIVOLT,
+    "A": UnitOfElectricCurrent.AMPERE,
 }
 
 
@@ -174,4 +231,8 @@ def infer_point_def(point_id: str, name: str | None, unit: str | None) -> PointD
         state_class = SensorStateClass.TOTAL_INCREASING
     elif resolved == UnitOfTemperature.CELSIUS:
         device_class = SensorDeviceClass.TEMPERATURE
+    elif resolved == UnitOfElectricPotential.VOLT:
+        device_class = SensorDeviceClass.VOLTAGE
+    elif resolved == UnitOfElectricCurrent.AMPERE:
+        device_class = SensorDeviceClass.CURRENT
     return PointDef(name or f"Point {point_id}", resolved, device_class, state_class)
