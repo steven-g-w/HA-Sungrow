@@ -199,10 +199,10 @@ and HACS validation on every push.
 - [x] Control support (charge/discharge scheduling)
 - [x] Optional `ps_id` with plant auto-discovery
 - [ ] Reconfigure flow for credentials/gateway without re-adding
+- [x] Brand icon (self-served from the integration's `brand/` folder;
+      shows in the HA UI on Home Assistant 2026.3.0 or newer)
 - [ ] More device types (string inverters, meters, chargers)
 - [ ] Statistics/history backfill from the cloud
-- [ ] Icon in the HA brands repository
-      ([PR pending](https://github.com/home-assistant/brands/pull/10791))
 
 ## Credits
 
