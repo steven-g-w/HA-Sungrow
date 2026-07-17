@@ -58,6 +58,9 @@ async def test_control_entities_created_when_enabled(
     number_state = hass.states.get(number_id)
     assert number_state.state == "100.0"
     assert number_state.attributes["unit_of_measurement"] == "%"
+    # Percentage parameters are sliders with 5 % steps.
+    assert number_state.attributes["mode"] == "slider"
+    assert number_state.attributes["step"] == 5
 
     switch_id = _entity_id(hass, "switch", f"{ESS_PS_KEY}_ctl_10065")
     assert switch_id is not None

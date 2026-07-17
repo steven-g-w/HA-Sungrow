@@ -31,13 +31,12 @@ async def async_setup_entry(
 class SungrowParamNumber(SungrowControlEntity, NumberEntity):
     """A writable numeric device parameter."""
 
-    _attr_mode = NumberMode.BOX
-
     def __init__(
         self, coordinator: SungrowControlCoordinator, definition: NumberDef
     ) -> None:
         super().__init__(coordinator, definition.code, definition.name)
         self._definition = definition
+        self._attr_mode = definition.mode
         self._attr_native_min_value = definition.min_value
         self._attr_native_max_value = definition.max_value
         self._attr_native_step = definition.step

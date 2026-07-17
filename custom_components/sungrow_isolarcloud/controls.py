@@ -11,6 +11,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from homeassistant.components.number import NumberMode
 from homeassistant.const import EntityCategory
 
 
@@ -25,6 +26,7 @@ class NumberDef:
     step: float
     unit: str | None = None
     entity_category: EntityCategory | None = EntityCategory.CONFIG
+    mode: NumberMode = NumberMode.BOX
 
 
 @dataclass(frozen=True)
@@ -62,8 +64,8 @@ class TimeDef:
 
 
 NUMBERS: tuple[NumberDef, ...] = (
-    NumberDef("10001", "SOC upper limit", 50, 100, 1, "%"),
-    NumberDef("10002", "SOC lower limit", 0, 50, 1, "%"),
+    NumberDef("10001", "SOC upper limit", 50, 100, 5, "%", mode=NumberMode.SLIDER),
+    NumberDef("10002", "SOC lower limit", 0, 50, 5, "%", mode=NumberMode.SLIDER),
     NumberDef(
         "10005",
         "Charging/discharging power",
@@ -73,8 +75,24 @@ NUMBERS: tuple[NumberDef, ...] = (
         "kW",
         entity_category=None,
     ),
-    NumberDef("10071", "Forced charging target SOC 1", 0, 100, 1, "%"),
-    NumberDef("10076", "Forced charging target SOC 2", 0, 100, 1, "%"),
+    NumberDef(
+        "10071",
+        "Forced charging target SOC 1",
+        0,
+        100,
+        5,
+        "%",
+        mode=NumberMode.SLIDER,
+    ),
+    NumberDef(
+        "10076",
+        "Forced charging target SOC 2",
+        0,
+        100,
+        5,
+        "%",
+        mode=NumberMode.SLIDER,
+    ),
     NumberDef("10091", "Max charging power", 0, 30, 0.01, "kW"),
     NumberDef("10092", "Max discharging power", 0, 30, 0.01, "kW"),
 )
