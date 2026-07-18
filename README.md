@@ -35,9 +35,9 @@ charging/discharging power, plus opt-in charge/discharge control entities.
   power/energy, generation, …)
 - Battery/BMS sensors (voltage, current, temperature, SOC, SOH, total
   charge/discharge)
-- Optional **device control**, off by default: charge/discharge command and
-  power, SOC limits, forced charging schedule (see
-  [Device control](#device-control-optional-off-by-default))
+- Optional **device control**, off by default and with per-entity opt-in:
+  charge/discharge command and power, SOC limits, forced charging schedule
+  (see [Device control](#device-control-optional-off-by-default))
 - Sensor names and units come from the iSolarCloud point metadata
   (`getOpenPointInfo`) with built-in fallbacks; SOC/SOH ratio points are
   automatically converted from fractions to percentages
@@ -50,11 +50,15 @@ charging/discharging power, plus opt-in charge/discharge control entities.
 A step-by-step walkthrough with screenshots for all of the below is in
 [docs/getting-credentials.md](docs/getting-credentials.md).
 
+Requires Home Assistant **2024.12.0 or newer** (the brand icon additionally
+needs 2026.3.0+). You'll also need:
+
 1. An [iSolarCloud](https://www.isolarcloud.com/) account that can see your
    plant.
 2. A developer application on the
    [Sungrow developer portal](https://developer-api.isolarcloud.com/):
-   - Log in to the portal, open **Applications** and click **Create**.
+   - Log in to the portal, open **Applications** and click
+     **Create application**.
    - Request access *without* OAuth 2.0 (V1). Approval usually takes a couple
      of days.
    - Once approved, open the application details to find your **App key** and
@@ -62,8 +66,9 @@ A step-by-step walkthrough with screenshots for all of the below is in
 3. *(Optional)* your **plant ID (`ps_id`)**. Normally you can leave this
    empty — the integration discovers it from your account. Provide it only
    if your account has several plants and you don't want the first one; you
-   can find it via *Try it* on the *Plant List* call in the developer portal
-   documentation, or in the iSolarCloud web UI URL when viewing your plant.
+   can find it in the iSolarCloud web UI under your plant's
+   **Settings → General Information → Plant ID**, or via the *Plant List*
+   call in the developer portal documentation.
 
 ## Installation
 
@@ -169,8 +174,11 @@ the iSolarCloud app.
   Assistant caches integration translations. Fully restart Home Assistant
   after updating the integration, then hard-refresh the browser
   (Ctrl+F5) or reset the companion app's frontend cache.
-- **Control entities missing after enabling control** — check the HA log:
-  the device must pass the API's parameter-setting support check, and your
+- **Control entities "missing" after enabling control** — this is usually
+  expected: control entities are registered **disabled**. Open the inverter
+  device page and look under the hidden/disabled entities to enable the
+  ones you want. If they don't appear there at all, check the HA log: the
+  device must pass the API's parameter-setting support check, and your
   developer application needs control permission on iSolarCloud.
 - **Setup fails with "cannot connect"** — verify the gateway matches your
   account's region and that the plant ID (if provided) belongs to this
@@ -206,7 +214,6 @@ and HACS validation on every push.
 
 - [x] Control support (charge/discharge scheduling)
 - [x] Optional `ps_id` with plant auto-discovery
-- [ ] Reconfigure flow for credentials/gateway without re-adding
 - [x] Brand icon (self-served from the integration's `brand/` folder;
       shows in the HA UI on Home Assistant 2026.3.0 or newer)
 - [ ] More device types (string inverters, meters, chargers)
