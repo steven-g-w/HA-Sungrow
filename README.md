@@ -47,6 +47,9 @@ charging/discharging power, plus opt-in charge/discharge control entities.
 
 ## Prerequisites
 
+A step-by-step walkthrough with screenshots for all of the below is in
+[docs/getting-credentials.md](docs/getting-credentials.md).
+
 1. An [iSolarCloud](https://www.isolarcloud.com/) account that can see your
    plant.
 2. A developer application on the
