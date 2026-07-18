@@ -29,6 +29,16 @@ MIN_SCAN_INTERVAL = 60
 # Device control (writes settings to the inverter). Off by default; the user
 # must opt in via the integration options.
 CONF_ENABLE_CONTROL = "enable_control"
+
+# One-shot statistics backfill. Chosen at setup only (stored in entry.data,
+# deliberately absent from the options flow): importing historical sums is
+# only safe before live statistics exist for the entities.
+CONF_ENABLE_BACKFILL = "enable_backfill"
+DATA_BACKFILL_DONE = "backfill_done"
+BACKFILL_DAYS = 30
+# The history endpoint rejects long ranges; 3-hour windows are known-good.
+BACKFILL_CHUNK_HOURS = 3
+BACKFILL_MINUTE_INTERVAL = 5
 # Control parameters change rarely and each read spawns a cloud->device
 # task, so refresh them far less often than the sensors.
 CONTROL_REFRESH_INTERVAL = 1800

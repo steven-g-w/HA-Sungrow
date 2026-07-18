@@ -14,8 +14,10 @@ from .api import SET_TYPE_WRITE, SungrowApiClient, SungrowApiError
 from .const import (
     CONF_APP_KEY,
     CONF_BASE_URL,
+    CONF_ENABLE_BACKFILL,
     CONF_ENABLE_CONTROL,
     CONF_SECRET_KEY,
+    DATA_BACKFILL_DONE,
     DEVICE_TYPE_ENERGY_STORAGE,
     PLATFORMS,
 )
@@ -100,7 +102,35 @@ async def async_setup_entry(hass: HomeAssistant, entry: SungrowConfigEntry) -> b
     entry.runtime_data = SungrowRuntimeData(coordinator=coordinator, control=control)
     entry.async_on_unload(entry.add_update_listener(_async_update_listener))
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+
+    if entry.data.get(CONF_ENABLE_BACKFILL) and not entry.data.get(
+        DATA_BACKFILL_DONE
+    ):
+        entry.async_create_background_task(
+            hass,
+            _async_run_backfill(hass, entry, coordinator),
+            "sungrow_isolarcloud_backfill",
+        )
     return True
+
+
+async def _async_run_backfill(
+    hass: HomeAssistant, entry: SungrowConfigEntry, coordinator: SungrowCoordinator
+) -> None:
+    """Run the one-shot statistics backfill and mark it done."""
+    # Imported lazily so installs without backfill never touch recorder.
+    from .backfill import async_backfill
+
+    try:
+        await async_backfill(hass, coordinator)
+    except Exception:
+        _LOGGER.exception("Statistics backfill failed")
+        return
+    # Mark done even across restarts. This triggers one entry reload via the
+    # update listener, after which this block is skipped forever.
+    hass.config_entries.async_update_entry(
+        entry, data={**entry.data, DATA_BACKFILL_DONE: True}
+    )
 
 
 async def _async_update_listener(

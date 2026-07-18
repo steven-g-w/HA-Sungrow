@@ -10,10 +10,12 @@
           "secret_key": "Secret key (x-access-key)",
           "username": "iSolarCloud username",
           "password": "iSolarCloud password",
-          "ps_id": "Plant ID (ps_id, optional)"
+          "ps_id": "Plant ID (ps_id, optional)",
+          "enable_backfill": "Import 30 days of history (one-time)"
         },
         "data_description": {
-          "ps_id": "Leave empty to detect it automatically from your account. If the account has several plants, the first one is used."
+          "ps_id": "Leave empty to detect it automatically from your account. If the account has several plants, the first one is used.",
+          "enable_backfill": "Imports the last 30 days of plant data from iSolarCloud into Home Assistant's long-term statistics (Energy dashboard) right after setup. Runs once, in the background, and CANNOT be enabled later — decide now."
         }
       },
       "reauth_confirm": {

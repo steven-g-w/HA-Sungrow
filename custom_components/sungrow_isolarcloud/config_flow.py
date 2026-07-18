@@ -34,6 +34,7 @@ from .const import (
     BASE_URLS,
     CONF_APP_KEY,
     CONF_BASE_URL,
+    CONF_ENABLE_BACKFILL,
     CONF_ENABLE_CONTROL,
     CONF_PS_ID,
     CONF_SCAN_INTERVAL,
@@ -64,6 +65,7 @@ STEP_USER_SCHEMA = vol.Schema(
             TextSelectorConfig(type=TextSelectorType.PASSWORD)
         ),
         vol.Optional(CONF_PS_ID): str,
+        vol.Required(CONF_ENABLE_BACKFILL, default=False): BooleanSelector(),
     }
 )
 

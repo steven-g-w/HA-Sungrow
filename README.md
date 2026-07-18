@@ -98,6 +98,13 @@ needs 2026.3.0+). You'll also need:
    - **Plant ID (`ps_id`)** — optional. Leave it empty and the integration
      finds it from your account automatically (the first plant is used if
      the account has several).
+   - **Import 30 days of history** — optional, default off. One-time import
+     of the last 30 days of plant data (yields, feed-in, purchased energy,
+     load consumption, power, battery SoC) into Home Assistant's long-term
+     statistics, so the Energy dashboard shows history from before the
+     integration was installed. It runs once in the background after setup
+     and **cannot be enabled later** — importing history is only safe
+     before live statistics exist.
 3. Submit — the integration validates the credentials by logging in and
    listing the plant's devices, then creates the sensors.
 
@@ -216,8 +223,8 @@ and HACS validation on every push.
 - [x] Optional `ps_id` with plant auto-discovery
 - [x] Brand icon (self-served from the integration's `brand/` folder;
       shows in the HA UI on Home Assistant 2026.3.0 or newer)
+- [x] Statistics/history backfill from the cloud (one-time, chosen at setup)
 - [ ] More device types (string inverters, meters, chargers)
-- [ ] Statistics/history backfill from the cloud
 
 ## Credits
 

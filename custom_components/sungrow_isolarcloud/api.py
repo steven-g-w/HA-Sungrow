@@ -249,6 +249,34 @@ class SungrowApiClient:
                 return rows
             page += 1
 
+    async def async_get_minute_history(
+        self,
+        ps_key: str,
+        point_ids: list[str],
+        start: str,
+        end: str,
+        minute_interval: int,
+    ) -> list[dict[str, Any]]:
+        """Return minute-granularity history frames for one device.
+
+        ``start``/``end`` are yyyyMMddHHmmss strings in the plant's local
+        time. The endpoint rejects long ranges, so callers should keep each
+        request to a few hours. Each returned frame contains ``time_stamp``
+        and ``p<point_id>`` values.
+        """
+        result = await self._authenticated_post(
+            "/openapi/getDevicePointMinuteDataList",
+            {
+                "ps_key_list": [ps_key],
+                "points": ",".join(f"p{p}" for p in point_ids),
+                "start_time_stamp": start,
+                "end_time_stamp": end,
+                "minute_interval": str(minute_interval),
+            },
+        )
+        frames = result.get(ps_key) or []
+        return [frame for frame in frames if isinstance(frame, dict)]
+
     async def async_param_setting_check(self, uuid: str, set_type: int) -> bool:
         """Return whether the device supports parameter read/write.
 

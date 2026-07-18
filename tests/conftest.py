@@ -9,6 +9,7 @@ getOpenPointInfo (storage_unit = unit of raw values).
 from __future__ import annotations
 
 from collections.abc import Generator
+from datetime import datetime, timedelta
 import sys
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, PropertyMock, patch
@@ -56,6 +57,7 @@ ENTRY_DATA = {
     "username": "user@example.com",
     "password": "hunter2",
     CONF_PS_ID: PS_ID,
+    "enable_backfill": False,
 }
 
 ESS_UUID = "9001"
@@ -335,6 +337,28 @@ def _make_client() -> MagicMock:
         ]
 
     client.async_write_params = AsyncMock(side_effect=_write_params)
+
+    async def _minute_history(
+        ps_key: str, point_ids: list[str], start: str, end: str, interval: int
+    ) -> list[dict[str, Any]]:
+        """Synthetic history: 100 Wh/h daily-resetting yield + flat readings."""
+        frames = []
+        ts_format = "%Y%m%d%H%M%S"
+        when = datetime.strptime(start, ts_format)
+        end_dt = datetime.strptime(end, ts_format)
+        while when < end_dt:
+            frames.append(
+                {
+                    "time_stamp": when.strftime(ts_format),
+                    "p83022": str(100.0 * when.hour),  # resets at midnight
+                    "p83033": "1500",
+                    "p83252": "0.5",  # fraction -> 50 % after scaling
+                }
+            )
+            when += timedelta(minutes=30)
+        return frames
+
+    client.async_get_minute_history = AsyncMock(side_effect=_minute_history)
     return client
 
 
