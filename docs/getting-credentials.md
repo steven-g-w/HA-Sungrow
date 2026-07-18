@@ -17,6 +17,10 @@ you already use in the app to watch your solar system) and a **developer
 application** on the Sungrow developer portal (which gives you the app key
 and secret key). Both are free.
 
+> [!NOTE]
+> Screenshots below have account names, keys, tokens and plant IDs blacked
+> out — the real values are unique to your account and will look different.
+
 ---
 
 ## Step 1: iSolarCloud account
@@ -33,9 +37,6 @@ If not, register an account first:
    and check that your solar system shows up on the home screen. If it
    doesn't, ask your installer to share the plant with your account.
 
-<!-- SCREENSHOT: iSolarCloud app home screen showing the plant/system overview -->
-![iSolarCloud app home screen with your plant visible](../images/setup/app-home.png)
-
 > [!NOTE]
 > The account must be able to see the plant. An account with no plants
 > will fail setup with "No plants were found" (unless you enter a
@@ -51,34 +52,30 @@ The app key and secret key come from the
    and log in — you can use your iSolarCloud account, or register a
    developer account if prompted.
 
-<!-- SCREENSHOT: developer portal login page -->
 ![Sungrow developer portal login page](../images/setup/portal-login.png)
 
-2. Open the **Application** (My Applications) section and click
-   **Create Application**.
+2. Open the **Applications** section and click **Create application**.
 
-<!-- SCREENSHOT: Applications page with the Create button highlighted -->
-![Applications page — Create Application button](../images/setup/portal-create-app.png)
+![Applications page — Create application button](../images/setup/portal-create-app.png)
 
 3. Fill in the application form. The important part:
    - Choose access **without OAuth 2.0** — this integration uses the
      **V1 account login**, not OAuth.
    - Name and description can be anything (e.g. "Home Assistant").
 
-<!-- SCREENSHOT: application creation form, with the non-OAuth / V1 option highlighted -->
-![Application form — select access without OAuth 2.0 (V1)](../images/setup/portal-app-form.png)
+![Application form — select "No" for Authorize with OAuth2.0](../images/setup/portal-app-form.png)
 
 4. Submit and wait for approval. Sungrow reviews applications manually;
    approval **usually takes a couple of days**. You'll see the status on
    the applications page (and may get an email).
 
-5. Once approved, open your application's details page. Copy:
-   - **App key** → the integration's **App key** field
+5. Once approved, open your application's details page (**Overview**
+   tab). Copy:
+   - **Appkey** → the integration's **App key** field
    - **Secret key** → the integration's **Secret key (x-access-key)**
      field
 
-<!-- SCREENSHOT: approved application details page showing App key and Secret key (redact your real keys!) -->
-![Application details — App key and Secret key](../images/setup/portal-app-keys.png)
+![Application details — Appkey and Secret key fields](../images/setup/portal-app-keys.png)
 
 > [!TIP]
 > Keep both keys private — together with your username and password they
@@ -115,39 +112,20 @@ Two ways to find it:
 
 ### Option A: developer portal "Try it"
 
-1. In the developer portal, open the API documentation and find the
-   **Plant List** (`getPowerStationList`) endpoint.
-2. Use the **Try it** / debugging feature with your app key and account
-   credentials. The response lists your plants; the `ps_id` field of
+1. In the developer portal, open the **Documentation** and find the
+   **Plant List** (`getPowerStationList`) endpoint's commissioning/testing
+   tool.
+2. Switch to **Real environment**, fill in your Appkey, secret key and
+   token, and run it. The response lists your plants; the `ps_id` field of
    each entry is the plant ID.
 
-<!-- SCREENSHOT: developer portal Try-it page for the Plant List call, with the ps_id field in the response highlighted -->
-![Plant List "Try it" response with ps_id highlighted](../images/setup/portal-plant-list.png)
+![Plant List commissioning tool response with ps_id highlighted](../images/setup/portal-plant-list.png)
 
 ### Option B: iSolarCloud web UI
 
 1. Log in at [www.isolarcloud.com](https://www.isolarcloud.com/) (use
-   the regional site matching your account if redirected).
-2. Open your plant. The browser URL contains the numeric plant ID, e.g.
-   `.../plantDetail/1234567/...` — that number is the `ps_id`.
+   the regional site matching your account).
+2. Open your plant, go to **Settings → General Information**, and copy the
+   **Plant ID** field near the bottom of the page.
 
-<!-- SCREENSHOT: iSolarCloud web UI plant page with the plant ID in the URL highlighted -->
-![iSolarCloud web plant page — ps_id in the URL](../images/setup/web-ps-id.png)
-
-## Step 5: Enter everything in Home Assistant
-
-In Home Assistant, go to **Settings → Devices & services → Add
-integration**, search for **Sungrow iSolarCloud** and fill in the values
-collected above.
-
-<!-- SCREENSHOT: the integration's setup dialog filled in (redact keys/password) -->
-![Sungrow iSolarCloud setup dialog in Home Assistant](../images/setup/ha-config-flow.png)
-
-Submitting validates the credentials by logging in and listing your
-plant's devices. If it fails, see
-[Troubleshooting](../README.md#troubleshooting) in the README.
-
----
-
-*Screenshots to be added — image files go in `images/setup/` with the
-file names referenced above.*
+![iSolarCloud plant Settings — General Information, Plant ID field](../images/setup/web-ps-id.png)
