@@ -11,7 +11,7 @@ from __future__ import annotations
 from collections.abc import Generator
 import sys
 from typing import Any
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, PropertyMock, patch
 
 import pytest
 import pytest_socket
@@ -261,6 +261,16 @@ def pycares_shutdown_thread_started() -> None:
 def auto_enable_custom_integrations(enable_custom_integrations: None) -> None:
     """Enable loading custom integrations in all tests."""
     return
+
+
+@pytest.fixture
+def entity_registry_enabled_by_default() -> Generator[None]:
+    """Force all entities enabled, bypassing registry-disabled defaults."""
+    with patch(
+        "homeassistant.helpers.entity.Entity.entity_registry_enabled_default",
+        new_callable=PropertyMock(return_value=True),
+    ):
+        yield
 
 
 @pytest.fixture

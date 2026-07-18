@@ -146,6 +146,11 @@ added to the inverter device:
 
 How it behaves:
 
+- Control entities are **added disabled**: even with the option on, enable
+  the specific entities you want to use on the inverter's device page
+  (Settings → Devices & services → the inverter device → "+N entities not
+  shown"). While all control entities are disabled, no parameter polling
+  happens.
 - Writes are sent as iSolarCloud parameter tasks to the physical device and
   typically take a few seconds to complete. Unit conversions (the API writes
   in raw register units, e.g. 0.1 % for SOC limits) are handled

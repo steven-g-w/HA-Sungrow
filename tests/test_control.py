@@ -38,10 +38,27 @@ async def test_control_disabled_by_default(
     mock_api_client.async_read_params.assert_not_awaited()
 
 
+async def test_control_entities_disabled_by_default_in_registry(
+    hass: HomeAssistant,
+    mock_api_client: MagicMock,
+    mock_config_entry_control: MockConfigEntry,
+) -> None:
+    """Even with control on, entities register disabled until user-enabled."""
+    await _setup(hass, mock_config_entry_control)
+    registry = er.async_get(hass)
+    select_id = _entity_id(hass, "select", f"{ESS_PS_KEY}_ctl_10004")
+    assert select_id is not None
+    entry = registry.async_get(select_id)
+    assert entry.disabled_by is er.RegistryEntryDisabler.INTEGRATION
+    # Disabled entities have no state and cannot be written through.
+    assert hass.states.get(select_id) is None
+
+
 async def test_control_entities_created_when_enabled(
     hass: HomeAssistant,
     mock_api_client: MagicMock,
     mock_config_entry_control: MockConfigEntry,
+    entity_registry_enabled_by_default: None,
 ) -> None:
     """Opting in creates entities with values from the parameter read-back."""
     await _setup(hass, mock_config_entry_control)
@@ -92,6 +109,7 @@ async def test_number_write_scales_by_precision(
     hass: HomeAssistant,
     mock_api_client: MagicMock,
     mock_config_entry_control: MockConfigEntry,
+    entity_registry_enabled_by_default: None,
 ) -> None:
     """Percent values are written in raw 0.1% units (95% -> "950").
 
@@ -117,6 +135,7 @@ async def test_number_write_kw_precision(
     hass: HomeAssistant,
     mock_api_client: MagicMock,
     mock_config_entry_control: MockConfigEntry,
+    entity_registry_enabled_by_default: None,
 ) -> None:
     """kW values with 0.01 precision are written as raw hundredths."""
     await _setup(hass, mock_config_entry_control)
@@ -137,6 +156,7 @@ async def test_select_write(
     hass: HomeAssistant,
     mock_api_client: MagicMock,
     mock_config_entry_control: MockConfigEntry,
+    entity_registry_enabled_by_default: None,
 ) -> None:
     """Selecting an option writes the mapped raw value."""
     await _setup(hass, mock_config_entry_control)
@@ -157,6 +177,7 @@ async def test_switch_write(
     hass: HomeAssistant,
     mock_api_client: MagicMock,
     mock_config_entry_control: MockConfigEntry,
+    entity_registry_enabled_by_default: None,
 ) -> None:
     """Turning the switch on writes the enable value."""
     await _setup(hass, mock_config_entry_control)
@@ -177,6 +198,7 @@ async def test_time_write(
     hass: HomeAssistant,
     mock_api_client: MagicMock,
     mock_config_entry_control: MockConfigEntry,
+    entity_registry_enabled_by_default: None,
 ) -> None:
     """Setting a time writes hour and minute in one task."""
     await _setup(hass, mock_config_entry_control)

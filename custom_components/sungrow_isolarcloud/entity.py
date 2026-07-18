@@ -12,9 +12,15 @@ from .coordinator import SungrowControlCoordinator
 
 
 class SungrowControlEntity(CoordinatorEntity[SungrowControlCoordinator]):
-    """Base for entities backed by a writable device parameter."""
+    """Base for entities backed by a writable device parameter.
+
+    Control entities are registered disabled: even with the control option
+    on, each entity must be explicitly enabled by the user before Home
+    Assistant can write to the inverter through it.
+    """
 
     _attr_has_entity_name = True
+    _attr_entity_registry_enabled_default = False
 
     def __init__(
         self, coordinator: SungrowControlCoordinator, key: str, name: str

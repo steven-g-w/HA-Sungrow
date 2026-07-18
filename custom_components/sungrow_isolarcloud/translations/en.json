@@ -47,7 +47,7 @@
         },
         "data_description": {
           "scan_interval": "iSolarCloud refreshes cloud data about every 5 minutes; polling faster returns the same values.",
-          "enable_control": "Creates entities that WRITE settings to your inverter (charge/discharge command and power, SOC limits, forced charging schedule). Leave off unless you want Home Assistant to control the system."
+          "enable_control": "Creates entities that WRITE settings to your inverter (charge/discharge command and power, SOC limits, forced charging schedule). The entities start disabled — enable the specific ones you need on the inverter's device page. Leave off unless you want Home Assistant to control the system."
         }
       }
     }
