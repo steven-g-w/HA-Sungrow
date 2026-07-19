@@ -13,7 +13,13 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from . import SungrowConfigEntry
 from .const import DEVICE_TYPE_PLANT, DOMAIN
 from .coordinator import PointValue, SungrowCoordinator, SungrowDevice
-from .points import DEVICE_TYPE_POINTS, PointDef, infer_point_def, resolve_unit
+from .points import (
+    DEVICE_TYPE_POINTS,
+    ECON_DEFS,
+    PointDef,
+    infer_point_def,
+    resolve_unit,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -45,6 +51,12 @@ async def async_setup_entry(
                 new_entities.append(
                     SungrowPointSensor(coordinator, device, point_id, reading)
                 )
+        for key, econ in data.economics.items():
+            marker = (coordinator.plant_ps_key, f"econ_{key}")
+            if marker in known or econ.value is None:
+                continue
+            known.add(marker)
+            new_entities.append(SungrowEconSensor(coordinator, key))
         if new_entities:
             # Plant entities first so the plant device exists in the registry
             # before child devices reference it via via_device.
@@ -120,3 +132,41 @@ class SungrowPointSensor(CoordinatorEntity[SungrowCoordinator], SensorEntity):
     def available(self) -> bool:
         """Sensor is available while the coordinator succeeds and has data."""
         return super().available and self._reading is not None
+
+
+class SungrowEconSensor(CoordinatorEntity[SungrowCoordinator], SensorEntity):
+    """A financial/environmental plant sensor (income, CO2 reduction)."""
+
+    _attr_has_entity_name = True
+
+    def __init__(self, coordinator: SungrowCoordinator, key: str) -> None:
+        super().__init__(coordinator)
+        self._key = key
+        definition = ECON_DEFS[key]
+        self._attr_unique_id = f"{coordinator.plant_ps_key}_econ_{key}"
+        self._attr_name = definition.name
+        self._attr_device_class = definition.device_class
+        self._attr_state_class = definition.state_class
+        econ = (coordinator.data.economics if coordinator.data else {}).get(key)
+        # Currency codes (AUD, EUR, ...) pass through resolve_unit unchanged;
+        # kg maps to the HA mass unit.
+        self._attr_native_unit_of_measurement = resolve_unit(
+            econ.unit if econ else None, None
+        )
+        self._attr_device_info = DeviceInfo(
+            identifiers={(DOMAIN, coordinator.plant_ps_key)}
+        )
+        self.device_type = DEVICE_TYPE_PLANT
+
+    @property
+    def native_value(self) -> float | None:
+        """Return the current figure."""
+        data = self.coordinator.data
+        econ = data.economics.get(self._key) if data else None
+        return econ.value if econ else None
+
+    @property
+    def available(self) -> bool:
+        """Available while the plant list provides the figure."""
+        data = self.coordinator.data
+        return super().available and bool(data and self._key in data.economics)

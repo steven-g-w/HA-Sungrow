@@ -23,7 +23,7 @@ from .const import (
     DOMAIN,
 )
 from .controls import ALL_PARAM_CODES
-from .points import DEVICE_TYPE_POINTS, PointDef
+from .points import DEVICE_TYPE_POINTS, ECON_DEFS, PointDef
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -51,6 +51,14 @@ class PointValue:
 
 
 @dataclass
+class EconValue:
+    """A financial/environmental reading from the plant list."""
+
+    value: float | None
+    unit: str | None
+
+
+@dataclass
 class SungrowData:
     """Coordinator data: devices, their point readings and health status."""
 
@@ -59,6 +67,8 @@ class SungrowData:
     # ps_key -> {"dev_fault_status": int|None, "dev_status": int|None},
     # from the same realtime responses as the measuring points.
     status: dict[str, dict[str, int | None]] = field(default_factory=dict)
+    # Income/CO2 figures from getPowerStationList, keyed by field name.
+    economics: dict[str, EconValue] = field(default_factory=dict)
 
 
 def _clean_int(raw: Any) -> int | None:
@@ -112,13 +122,47 @@ class SungrowCoordinator(DataUpdateCoordinator[SungrowData]):
         """ps_key of the plant pseudo-device."""
         return f"{self.ps_id}_11_0_0"
 
-    async def _async_discover_devices(self) -> dict[str, SungrowDevice]:
+    async def _async_fetch_plant_row(self) -> dict[str, Any] | None:
+        """Return this plant's row from getPowerStationList (or None)."""
+        try:
+            plants = await self.client.async_get_power_station_list()
+        except SungrowAuthError:
+            raise
+        except SungrowApiError as err:
+            _LOGGER.debug("Could not fetch power station list: %s", err)
+            return None
+        for plant in plants:
+            if str(plant.get("ps_id")) == self.ps_id:
+                return plant
+        return None
+
+    @staticmethod
+    def _parse_economics(row: dict[str, Any] | None) -> dict[str, EconValue]:
+        """Extract income/CO2 figures ({'unit':..., 'value':...} fields)."""
+        economics: dict[str, EconValue] = {}
+        for key in ECON_DEFS:
+            field_value = (row or {}).get(key)
+            if not isinstance(field_value, dict):
+                continue
+            try:
+                value = float(field_value.get("value"))
+            except (TypeError, ValueError):
+                continue
+            unit = field_value.get("unit")
+            economics[key] = EconValue(
+                value=value, unit=str(unit) if unit else None
+            )
+        return economics
+
+    async def _async_discover_devices(
+        self, plant_name: str | None
+    ) -> dict[str, SungrowDevice]:
         """Fetch the device list and add the plant pseudo-device."""
         devices: dict[str, SungrowDevice] = {
             self.plant_ps_key: SungrowDevice(
                 ps_key=self.plant_ps_key,
                 device_type=DEVICE_TYPE_PLANT,
-                name=f"Plant {self.ps_id}",
+                name=plant_name or f"Plant {self.ps_id}",
             )
         }
         for raw in await self.client.async_get_device_list(self.ps_id):
@@ -188,8 +232,15 @@ class SungrowCoordinator(DataUpdateCoordinator[SungrowData]):
 
     async def _async_update_data(self) -> SungrowData:
         try:
+            plant_row = await self._async_fetch_plant_row()
+            economics = self._parse_economics(plant_row)
+            if not economics and self.data is not None:
+                # Keep the previous figures over a transient list failure.
+                economics = self.data.economics
             if self._devices is None:
-                self._devices = await self._async_discover_devices()
+                self._devices = await self._async_discover_devices(
+                    (plant_row or {}).get("ps_name")
+                )
             device_types = {
                 d.device_type
                 for d in self._devices.values()
@@ -212,7 +263,10 @@ class SungrowCoordinator(DataUpdateCoordinator[SungrowData]):
                 )
                 self._merge_result(points, status, result, device_type)
             return SungrowData(
-                devices=dict(self._devices), points=points, status=status
+                devices=dict(self._devices),
+                points=points,
+                status=status,
+                economics=economics,
             )
         except SungrowAuthError as err:
             raise ConfigEntryAuthFailed(str(err)) from err

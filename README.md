@@ -35,6 +35,8 @@ charging/discharging power, plus opt-in charge/discharge control entities.
   power/energy, generation, …)
 - Battery/BMS sensors (voltage, current, temperature, SOC, SOH, total
   charge/discharge)
+- Financial and environmental sensors (income today/this year/total in your
+  account's currency, CO2 reduction today/total)
 - Optional **device control**, off by default and with per-entity opt-in:
   charge/discharge command and power, SOC limits, forced charging schedule
   (see [Device control](#device-control-optional-off-by-default))
@@ -126,9 +128,11 @@ re-authentication dialog appears automatically.
 Sensors are created for every measuring point that returns a value, grouped
 into devices:
 
-- **Plant** (`<ps_id>_11_0_0`): plant power, load power, daily/total yield,
-  daily/total feed-in energy, daily/total purchased energy, battery SoC,
-  ESS daily/total charge and discharge energy, …
+- **Plant** (`<ps_id>_11_0_0`, named after your plant): plant power, load
+  power, daily/total yield, daily/total feed-in energy, daily/total
+  purchased energy, battery SoC, ESS daily/total charge and discharge
+  energy, plus income (today/year/total) and CO2 reduction figures from
+  iSolarCloud, …
 - **Hybrid inverter / energy storage** (device type 14): total DC power,
   daily/total generation, battery charging/discharging power, battery level
   (SoC), battery SOH, battery temperature, purchased power and energy,

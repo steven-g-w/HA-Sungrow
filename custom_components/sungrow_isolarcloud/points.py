@@ -21,6 +21,7 @@ from homeassistant.const import (
     UnitOfElectricCurrent,
     UnitOfElectricPotential,
     UnitOfEnergy,
+    UnitOfMass,
     UnitOfPower,
     UnitOfTemperature,
     UnitOfTime,
@@ -185,6 +186,43 @@ DEVICE_TYPE_POINTS: dict[int, dict[str, PointDef]] = {
     DEVICE_TYPE_BATTERY: BATTERY_POINTS,
 }
 
+@dataclass(frozen=True)
+class EconDef:
+    """Metadata for a financial/environmental plant sensor.
+
+    Values come from getPowerStationList fields shaped like
+    ``{"unit": "AUD", "value": "14062"}``; the unit (currency or kg) is
+    taken from the API response.
+    """
+
+    name: str
+    device_class: SensorDeviceClass | None
+    state_class: SensorStateClass | None
+
+
+ECON_DEFS: dict[str, EconDef] = {
+    "today_income": EconDef(
+        "Income today", SensorDeviceClass.MONETARY, SensorStateClass.TOTAL
+    ),
+    "year_income": EconDef(
+        "Income this year", SensorDeviceClass.MONETARY, SensorStateClass.TOTAL
+    ),
+    "total_income": EconDef(
+        "Total income", SensorDeviceClass.MONETARY, SensorStateClass.TOTAL
+    ),
+    "co2_reduce": EconDef(
+        "CO2 reduction today",
+        SensorDeviceClass.WEIGHT,
+        SensorStateClass.TOTAL_INCREASING,
+    ),
+    "co2_reduce_total": EconDef(
+        "Total CO2 reduction",
+        SensorDeviceClass.WEIGHT,
+        SensorStateClass.TOTAL_INCREASING,
+    ),
+}
+
+
 # Mapping of unit strings returned by the API to Home Assistant units.
 API_UNIT_MAP: dict[str, str] = {
     "W": UnitOfPower.WATT,
@@ -201,6 +239,7 @@ API_UNIT_MAP: dict[str, str] = {
     "V": UnitOfElectricPotential.VOLT,
     "mV": UnitOfElectricPotential.MILLIVOLT,
     "A": UnitOfElectricCurrent.AMPERE,
+    "kg": UnitOfMass.KILOGRAMS,
 }
 
 

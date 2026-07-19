@@ -64,7 +64,16 @@ ESS_UUID = "9001"
 PS_NAME = "Test Plant"
 
 POWER_STATION_LIST: list[dict[str, Any]] = [
-    {"ps_id": int(PS_ID), "ps_name": PS_NAME, "ps_type": 5},
+    {
+        "ps_id": int(PS_ID),
+        "ps_name": PS_NAME,
+        "ps_type": 5,
+        "today_income": {"unit": "AUD", "value": "1.23"},
+        "year_income": {"unit": "AUD", "value": "456"},
+        "total_income": {"unit": "AUD", "value": "7890"},
+        "co2_reduce": {"unit": "kg", "value": "12.5"},
+        "co2_reduce_total": {"unit": "kg", "value": "36437"},
+    },
 ]
 
 DEVICE_LIST: list[dict[str, Any]] = [

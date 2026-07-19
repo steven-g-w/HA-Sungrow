@@ -86,6 +86,35 @@ async def test_setup_creates_sensors(
     assert bat_volt.attributes["device_class"] == "voltage"
 
 
+async def test_economics_sensors(
+    hass: HomeAssistant,
+    mock_api_client: MagicMock,
+    mock_config_entry: MockConfigEntry,
+) -> None:
+    """Income and CO2 sensors are created on the plant device."""
+    await _setup(hass, mock_config_entry)
+
+    income_id = _entity_id(hass, f"{PLANT_PS_KEY}_econ_total_income")
+    assert income_id is not None
+    income = hass.states.get(income_id)
+    assert income.state == "7890.0"
+    assert income.attributes["unit_of_measurement"] == "AUD"
+    assert income.attributes["device_class"] == "monetary"
+    assert income.attributes["state_class"] == "total"
+
+    co2_id = _entity_id(hass, f"{PLANT_PS_KEY}_econ_co2_reduce_total")
+    assert co2_id is not None
+    co2 = hass.states.get(co2_id)
+    assert co2.state == "36437.0"
+    assert co2.attributes["unit_of_measurement"] == "kg"
+    assert co2.attributes["state_class"] == "total_increasing"
+
+    # The plant device is named after the plant, not the numeric id.
+    registry = dr.async_get(hass)
+    plant = registry.async_get_device(identifiers={(DOMAIN, PLANT_PS_KEY)})
+    assert plant.name == "Test Plant"
+
+
 async def test_no_entities_for_missing_values(
     hass: HomeAssistant,
     mock_api_client: MagicMock,
