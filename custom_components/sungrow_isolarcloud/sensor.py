@@ -101,6 +101,7 @@ class SungrowPointSensor(CoordinatorEntity[SungrowCoordinator], SensorEntity):
         )
         self._attr_device_class = point_def.device_class
         self._attr_state_class = point_def.state_class
+        self._attr_entity_category = point_def.entity_category
 
         device_info = DeviceInfo(
             identifiers={(DOMAIN, device.ps_key)},

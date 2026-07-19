@@ -18,6 +18,8 @@ from dataclasses import dataclass
 from homeassistant.components.sensor import SensorDeviceClass, SensorStateClass
 from homeassistant.const import (
     PERCENTAGE,
+    SIGNAL_STRENGTH_DECIBELS_MILLIWATT,
+    EntityCategory,
     UnitOfElectricCurrent,
     UnitOfElectricPotential,
     UnitOfEnergy,
@@ -29,6 +31,7 @@ from homeassistant.const import (
 
 from .const import (
     DEVICE_TYPE_BATTERY,
+    DEVICE_TYPE_COMM_MODULE,
     DEVICE_TYPE_ENERGY_STORAGE,
     DEVICE_TYPE_PLANT,
 )
@@ -45,6 +48,7 @@ class PointDef:
     # Multiplier applied to the raw value when the API's point metadata is
     # unavailable (e.g. SOC fractions -> percent).
     scale: float = 1.0
+    entity_category: EntityCategory | None = None
 
 
 def _power(name: str) -> PointDef:
@@ -177,6 +181,65 @@ BATTERY_POINTS: dict[str, PointDef] = {
     "58605": _ratio("Battery health"),
     "58606": _energy("Total battery charge"),
     "58607": _energy("Total battery discharge"),
+    # Cell-level diagnostics: voltage spread between the strongest and
+    # weakest cell is an early indicator of pack degradation.
+    "58610": PointDef(
+        "Max cell voltage",
+        UnitOfElectricPotential.MILLIVOLT,
+        SensorDeviceClass.VOLTAGE,
+        SensorStateClass.MEASUREMENT,
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+    "58612": PointDef(
+        "Min cell voltage",
+        UnitOfElectricPotential.MILLIVOLT,
+        SensorDeviceClass.VOLTAGE,
+        SensorStateClass.MEASUREMENT,
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+    "58614": PointDef(
+        "Max module temperature",
+        UnitOfTemperature.CELSIUS,
+        SensorDeviceClass.TEMPERATURE,
+        SensorStateClass.MEASUREMENT,
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+    "58616": PointDef(
+        "Min module temperature",
+        UnitOfTemperature.CELSIUS,
+        SensorDeviceClass.TEMPERATURE,
+        SensorStateClass.MEASUREMENT,
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+}
+
+# Communication module (device_type 22, WiNet-S / cellular dongles).
+# Verified live: WLAN signal strength reports dBm (e.g. -53). Points a
+# given module doesn't report simply create no entities.
+COMM_MODULE_POINTS: dict[str, PointDef] = {
+    "23014": PointDef(
+        "WLAN signal strength",
+        SIGNAL_STRENGTH_DECIBELS_MILLIWATT,
+        SensorDeviceClass.SIGNAL_STRENGTH,
+        SensorStateClass.MEASUREMENT,
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+    # Cellular signal; unit/format varies by module, so no device class or
+    # state class (some modules may report non-numeric values).
+    "23001": PointDef(
+        "Wireless signal strength",
+        None,
+        None,
+        None,
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+    "23006": PointDef(
+        "Restart count",
+        None,
+        None,
+        SensorStateClass.TOTAL_INCREASING,
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
 }
 
 # Points queried per device_type.
@@ -184,6 +247,7 @@ DEVICE_TYPE_POINTS: dict[int, dict[str, PointDef]] = {
     DEVICE_TYPE_PLANT: PLANT_POINTS,
     DEVICE_TYPE_ENERGY_STORAGE: ENERGY_STORAGE_POINTS,
     DEVICE_TYPE_BATTERY: BATTERY_POINTS,
+    DEVICE_TYPE_COMM_MODULE: COMM_MODULE_POINTS,
 }
 
 @dataclass(frozen=True)

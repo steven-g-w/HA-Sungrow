@@ -15,7 +15,7 @@ from custom_components.sungrow_isolarcloud.api import (
 )
 from custom_components.sungrow_isolarcloud.const import DOMAIN
 
-from .conftest import BATTERY_PS_KEY, ESS_PS_KEY, PLANT_PS_KEY
+from .conftest import BATTERY_PS_KEY, COMM_PS_KEY, ESS_PS_KEY, PLANT_PS_KEY
 
 
 async def _setup(hass: HomeAssistant, entry: MockConfigEntry) -> None:
@@ -84,6 +84,22 @@ async def test_setup_creates_sensors(
     assert bat_volt.state == "523.9"
     assert bat_volt.attributes["unit_of_measurement"] == "V"
     assert bat_volt.attributes["device_class"] == "voltage"
+
+    # Diagnostic sensors: battery max cell voltage and WLAN signal strength.
+    registry = er.async_get(hass)
+    cell_id = _entity_id(hass, f"{BATTERY_PS_KEY}_58610")
+    assert cell_id is not None
+    assert hass.states.get(cell_id).state == "3317.5"
+    assert hass.states.get(cell_id).attributes["unit_of_measurement"] == "mV"
+    assert registry.async_get(cell_id).entity_category == er.EntityCategory.DIAGNOSTIC
+
+    wlan_id = _entity_id(hass, f"{COMM_PS_KEY}_23014")
+    assert wlan_id is not None
+    wlan = hass.states.get(wlan_id)
+    assert wlan.state == "-53.0"
+    assert wlan.attributes["unit_of_measurement"] == "dBm"
+    assert wlan.attributes["device_class"] == "signal_strength"
+    assert registry.async_get(wlan_id).entity_category == er.EntityCategory.DIAGNOSTIC
 
 
 async def test_economics_sensors(

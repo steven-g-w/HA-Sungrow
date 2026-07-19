@@ -94,7 +94,6 @@ DEVICE_LIST: list[dict[str, Any]] = [
         "device_sn": "SN-BAT-1",
         "device_model_code": "SBR256",
     },
-    # A device type we have no point catalog for; must be ignored gracefully.
     {
         "ps_key": f"{PS_ID}_22_247_1",
         "ps_id": PS_ID,
@@ -102,7 +101,31 @@ DEVICE_LIST: list[dict[str, Any]] = [
         "device_name": "WiNet-S",
         "device_sn": "SN-COM-1",
     },
+    # A device type we have no point catalog for; must be ignored gracefully.
+    {
+        "ps_key": f"{PS_ID}_7_1_1",
+        "ps_id": PS_ID,
+        "device_type": 7,
+        "device_name": "Meter1",
+        "device_sn": "SN-MET-1",
+    },
 ]
+
+COMM_PS_KEY = f"{PS_ID}_22_247_1"
+
+COMM_REALTIME: dict[str, Any] = {
+    "device_point_list": [
+        {
+            "device_point": {
+                "dev_fault_status": 4,
+                "dev_status": 1,
+                "ps_key": COMM_PS_KEY,
+                "p23014": "-53",  # WLAN signal dBm
+            }
+        }
+    ],
+    "fail_ps_key_list": [],
+}
 
 PLANT_REALTIME: dict[str, Any] = {
     "device_point_list": [
@@ -146,6 +169,7 @@ BATTERY_REALTIME: dict[str, Any] = {
                 "ps_key": BATTERY_PS_KEY,
                 "p58604": "0.44",  # battery SoC as fraction
                 "p58601": "523.9",  # battery voltage V
+                "p58610": "3317.5",  # max cell voltage mV
             }
         }
     ],
@@ -364,6 +388,8 @@ def _make_client() -> MagicMock:
             return ESS_REALTIME
         if device_type == DEVICE_TYPE_BATTERY:
             return BATTERY_REALTIME
+        if device_type == 22:
+            return COMM_REALTIME
         return {"device_point_list": []}
 
     client.async_get_realtime_data = AsyncMock(side_effect=_realtime)

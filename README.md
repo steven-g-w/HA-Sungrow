@@ -138,7 +138,12 @@ into devices:
   (SoC), battery SOH, battery temperature, purchased power and energy,
   feed-in power and energy, load consumption, …
 - **Battery / BMS** (device type 43, e.g. SBR-series): voltage, current,
-  temperature, SOC, health, total charge/discharge energy
+  temperature, SOC, health, total charge/discharge energy, plus diagnostic
+  cell-level sensors (max/min cell voltage, max/min module temperature —
+  cell-voltage spread is an early indicator of pack degradation)
+- **Communication module** (device type 22, e.g. WiNet-S): diagnostic
+  signal-strength and restart-count sensors — early warning for
+  connectivity problems
 
 Each hardware device also gets a diagnostic **Problem** binary sensor that
 turns on when iSolarCloud reports a fault or alarm for it (the specific
