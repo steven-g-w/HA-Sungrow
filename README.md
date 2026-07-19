@@ -136,6 +136,10 @@ into devices:
 - **Battery / BMS** (device type 43, e.g. SBR-series): voltage, current,
   temperature, SOC, health, total charge/discharge energy
 
+Each hardware device also gets a diagnostic **Problem** binary sensor that
+turns on when iSolarCloud reports a fault or alarm for it (the specific
+state is in the sensor's attributes) — handy for notification automations.
+
 Points that your plant/app does not expose are simply skipped, and new points
 appearing later are added automatically.
 
@@ -152,8 +156,10 @@ added to the inverter device:
 
 - **Select**: charging/discharging command (Charge / Discharge / Stop)
 - **Number**: charging/discharging power, SOC upper/lower limit (5 % slider
-  steps), forced charging target SOC 1/2, max charging/discharging power
-- **Switch**: forced charging enable
+  steps), forced charging target SOC 1/2, max charging/discharging power,
+  active power limit ratio, feed-in power limit and ratio
+- **Switch**: forced charging, active power limitation, feed-in power
+  limitation (e.g. cap export to 0 kW when feed-in prices go negative)
 - **Time**: forced charging window 1/2 start and end times
 
 How it behaves:

@@ -115,6 +115,8 @@ ESS_REALTIME: dict[str, Any] = {
     "device_point_list": [
         {
             "device_point": {
+                "dev_fault_status": 4,
+                "dev_status": 1,
                 "ps_key": ESS_PS_KEY,
                 "p13141": "0.55",  # battery SoC as fraction
                 "p13126": "2500",  # charging power W
@@ -130,6 +132,8 @@ BATTERY_REALTIME: dict[str, Any] = {
     "device_point_list": [
         {
             "device_point": {
+                "dev_fault_status": 4,
+                "dev_status": 1,
                 "ps_key": BATTERY_PS_KEY,
                 "p58604": "0.44",  # battery SoC as fraction
                 "p58601": "523.9",  # battery voltage V
@@ -233,6 +237,41 @@ CONTROL_ROWS: list[dict[str, Any]] = [
         "point_name": "Forced charging",
         "set_val_name": "Disable|Enable",
         "set_val_name_val": "85|170",
+    },
+    {
+        "param_code": "10007",
+        "return_value": "170",
+        "point_name": "Active power limitation",
+        "set_val_name": "Enable|Disable",
+        "set_val_name_val": "170|85",
+    },
+    {
+        "param_code": "10008",
+        "return_value": "100",
+        "point_name": "Active power limit ratio",
+        "unit": "%",
+        "set_precision": "0.1",
+    },
+    {
+        "param_code": "10012",
+        "return_value": "85",
+        "point_name": "Feed-in power limitation",
+        "set_val_name": "Enable|Disable",
+        "set_val_name_val": "170|85",
+    },
+    {
+        "param_code": "10013",
+        "return_value": "10",
+        "point_name": "Feed-in power limit",
+        "unit": "kW",
+        "set_precision": "0.01",
+    },
+    {
+        "param_code": "10014",
+        "return_value": "100",
+        "point_name": "Feed-in power limit ratio",
+        "unit": "%",
+        "set_precision": "0.1",
     },
     {"param_code": "10067", "return_value": "1"},
     {"param_code": "10068", "return_value": "30"},

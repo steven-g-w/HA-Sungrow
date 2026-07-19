@@ -173,6 +173,46 @@ async def test_select_write(
     assert hass.states.get(select_id).state == "Charge"
 
 
+async def test_export_limit_entities_and_write(
+    hass: HomeAssistant,
+    mock_api_client: MagicMock,
+    mock_config_entry_control: MockConfigEntry,
+    entity_registry_enabled_by_default: None,
+) -> None:
+    """Feed-in limitation switch and limit number exist and write correctly."""
+    await _setup(hass, mock_config_entry_control)
+
+    # Active power limitation currently enabled (170).
+    active_id = _entity_id(hass, "switch", f"{ESS_PS_KEY}_ctl_10007")
+    assert hass.states.get(active_id).state == "on"
+
+    # Feed-in limitation currently disabled (85); turn it on.
+    feedin_id = _entity_id(hass, "switch", f"{ESS_PS_KEY}_ctl_10012")
+    assert hass.states.get(feedin_id).state == "off"
+    await hass.services.async_call(
+        "switch", "turn_on", {"entity_id": feedin_id}, blocking=True
+    )
+    mock_api_client.async_write_params.assert_awaited_once_with(
+        ESS_UUID, {"10012": "170"}
+    )
+    assert hass.states.get(feedin_id).state == "on"
+
+    # Feed-in power limit: 10 kW shown; writing 0 kW sends raw hundredths.
+    mock_api_client.async_write_params.reset_mock()
+    limit_id = _entity_id(hass, "number", f"{ESS_PS_KEY}_ctl_10013")
+    assert hass.states.get(limit_id).state == "10.0"
+    await hass.services.async_call(
+        "number",
+        "set_value",
+        {"entity_id": limit_id, "value": 0},
+        blocking=True,
+    )
+    mock_api_client.async_write_params.assert_awaited_once_with(
+        ESS_UUID, {"10013": "0"}
+    )
+    assert hass.states.get(limit_id).state == "0.0"
+
+
 async def test_switch_write(
     hass: HomeAssistant,
     mock_api_client: MagicMock,

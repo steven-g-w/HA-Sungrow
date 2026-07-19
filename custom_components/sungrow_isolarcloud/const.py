@@ -49,4 +49,11 @@ DEVICE_TYPE_PLANT = 11
 DEVICE_TYPE_ENERGY_STORAGE = 14
 DEVICE_TYPE_BATTERY = 43
 
-PLATFORMS: list[str] = ["number", "select", "sensor", "switch", "time"]
+PLATFORMS: list[str] = [
+    "binary_sensor",
+    "number",
+    "select",
+    "sensor",
+    "switch",
+    "time",
+]

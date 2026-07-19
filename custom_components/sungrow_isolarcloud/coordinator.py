@@ -52,10 +52,21 @@ class PointValue:
 
 @dataclass
 class SungrowData:
-    """Coordinator data: devices and their point readings."""
+    """Coordinator data: devices, their point readings and health status."""
 
     devices: dict[str, SungrowDevice] = field(default_factory=dict)
     points: dict[str, dict[str, PointValue]] = field(default_factory=dict)
+    # ps_key -> {"dev_fault_status": int|None, "dev_status": int|None},
+    # from the same realtime responses as the measuring points.
+    status: dict[str, dict[str, int | None]] = field(default_factory=dict)
+
+
+def _clean_int(raw: Any) -> int | None:
+    """Parse an int-ish API field, returning None when absent/invalid."""
+    try:
+        return int(raw)
+    except (TypeError, ValueError):
+        return None
 
 
 def _clean_value(raw: Any) -> float | str | None:
@@ -188,6 +199,7 @@ class SungrowCoordinator(DataUpdateCoordinator[SungrowData]):
                 self._point_meta = await self._async_fetch_point_meta(device_types)
 
             points: dict[str, dict[str, PointValue]] = {}
+            status: dict[str, dict[str, int | None]] = {}
             for device_type in device_types:
                 catalog = DEVICE_TYPE_POINTS[device_type]
                 ps_keys = [
@@ -198,8 +210,10 @@ class SungrowCoordinator(DataUpdateCoordinator[SungrowData]):
                 result = await self.client.async_get_realtime_data(
                     device_type, ps_keys, list(catalog)
                 )
-                self._merge_result(points, result, device_type)
-            return SungrowData(devices=dict(self._devices), points=points)
+                self._merge_result(points, status, result, device_type)
+            return SungrowData(
+                devices=dict(self._devices), points=points, status=status
+            )
         except SungrowAuthError as err:
             raise ConfigEntryAuthFailed(str(err)) from err
         except SungrowApiError as err:
@@ -237,10 +251,11 @@ class SungrowCoordinator(DataUpdateCoordinator[SungrowData]):
     def _merge_result(
         self,
         points: dict[str, dict[str, PointValue]],
+        status: dict[str, dict[str, int | None]],
         result: dict[str, Any],
         device_type: int,
     ) -> None:
-        """Parse a getDeviceRealTimeData result into the points mapping."""
+        """Parse a getDeviceRealTimeData result into points and status."""
         for item in result.get("device_point_list") or []:
             device_point = item.get("device_point") if isinstance(item, dict) else None
             if not isinstance(device_point, dict):
@@ -250,6 +265,10 @@ class SungrowCoordinator(DataUpdateCoordinator[SungrowData]):
             ps_key = str(device_point.get("ps_key") or "")
             if not ps_key:
                 continue
+            status[ps_key] = {
+                "dev_fault_status": _clean_int(device_point.get("dev_fault_status")),
+                "dev_status": _clean_int(device_point.get("dev_status")),
+            }
             readings = points.setdefault(ps_key, {})
             for key, raw in device_point.items():
                 if not key.startswith("p") or not key[1:].isdigit():

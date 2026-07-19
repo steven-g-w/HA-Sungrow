@@ -95,6 +95,37 @@ NUMBERS: tuple[NumberDef, ...] = (
     ),
     NumberDef("10091", "Max charging power", 0, 30, 0.01, "kW"),
     NumberDef("10092", "Max discharging power", 0, 30, 0.01, "kW"),
+    # Export / power curtailment (verified live: ratios are % with 0.1
+    # precision, feed-in limit is kW with 0.01 precision).
+    NumberDef(
+        "10008",
+        "Active power limit ratio",
+        0,
+        100,
+        1,
+        "%",
+        entity_category=None,
+        mode=NumberMode.SLIDER,
+    ),
+    NumberDef(
+        "10013",
+        "Feed-in power limit",
+        0,
+        30,
+        0.01,
+        "kW",
+        entity_category=None,
+    ),
+    NumberDef(
+        "10014",
+        "Feed-in power limit ratio",
+        0,
+        100,
+        1,
+        "%",
+        entity_category=None,
+        mode=NumberMode.SLIDER,
+    ),
 )
 
 SELECTS: tuple[SelectDef, ...] = (
@@ -109,6 +140,21 @@ SELECTS: tuple[SelectDef, ...] = (
 SWITCHES: tuple[SwitchDef, ...] = (
     # Verified live: Disable|Enable = 85|170.
     SwitchDef("10065", "Forced charging", on_value="170", off_value="85"),
+    # Export / power curtailment switches (Enable|Disable = 170|85).
+    SwitchDef(
+        "10007",
+        "Active power limitation",
+        on_value="170",
+        off_value="85",
+        entity_category=None,
+    ),
+    SwitchDef(
+        "10012",
+        "Feed-in power limitation",
+        on_value="170",
+        off_value="85",
+        entity_category=None,
+    ),
 )
 
 TIMES: tuple[TimeDef, ...] = (
