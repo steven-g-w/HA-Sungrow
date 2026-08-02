@@ -34,9 +34,12 @@ charging/discharging power, plus opt-in charge/discharge control entities.
   power, battery level, battery health, battery temperature, purchased
   power/energy, generation, …)
 - Battery/BMS sensors (voltage, current, temperature, SOC, SOH, total
-  charge/discharge)
+  charge/discharge), plus diagnostic sensors for cell voltages, module
+  temperatures and communication-module signal strength
 - Financial and environmental sensors (income today/this year/total in your
   account's currency, CO2 reduction today/total)
+- A **Problem** binary sensor per device, on when iSolarCloud reports a
+  fault or alarm
 - Optional **device control**, off by default and with per-entity opt-in:
   charge/discharge command and power, SOC limits, forced charging schedule
   (see [Device control](#device-control-optional-off-by-default))
@@ -46,6 +49,9 @@ charging/discharging power, plus opt-in charge/discharge control entities.
 - Automatic token renewal and re-authentication flow
 - Configurable polling interval (default 5 minutes — the cloud only refreshes
   about that often)
+- The whole API→Home Assistant mapping lives in a single declarative
+  [`catalog.yaml`](custom_components/sungrow_isolarcloud/catalog.yaml), so
+  supporting new points, controls or device types needs no Python changes
 
 ## Prerequisites
 
@@ -176,8 +182,9 @@ How it behaves:
 - Control entities are **added disabled**: even with the option on, enable
   the specific entities you want to use on the inverter's device page
   (Settings → Devices & services → the inverter device → "+N entities not
-  shown"). While all control entities are disabled, no parameter polling
-  happens.
+  shown"). While all control entities are disabled, no *recurring*
+  parameter polling happens — the parameters are read once when the entry
+  loads and then left alone.
 - Writes are sent as iSolarCloud parameter tasks to the physical device and
   typically take a few seconds to complete. Unit conversions (the API writes
   in raw register units, e.g. 0.1 % for SOC limits) are handled
@@ -226,7 +233,9 @@ the schema and design rationale in
 - [x] Brand icon (self-served from the integration's `brand/` folder;
       shows in the HA UI on Home Assistant 2026.3.0 or newer)
 - [x] Statistics/history backfill from the cloud (one-time, chosen at setup)
-- [ ] More device types (string inverters, meters, chargers)
+- [x] Declarative `catalog.yaml` — mapping is config, not code (0.9.0)
+- [ ] More device types (string inverters, meters, chargers) — now a
+      catalog-only change, see [contributing](docs/contributing.md)
 
 ## Credits
 
