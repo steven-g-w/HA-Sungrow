@@ -1,6 +1,8 @@
 # Design: a declarative catalog as the single source of truth
 
-**Status:** proposed
+**Status:** implemented (v0.9.0) — `catalog.yaml` + `catalog.py` shipped;
+`points.py`/`controls.py` deleted; the transitional parity test ran green
+during the migration and was removed with them.
 **Scope:** `custom_components/sungrow_isolarcloud`
 
 ## Summary

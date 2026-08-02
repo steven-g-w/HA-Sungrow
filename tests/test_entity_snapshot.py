@@ -21,8 +21,6 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr, entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.sungrow_isolarcloud.const import DOMAIN
-
 SNAPSHOT_PATH = Path(__file__).parent / "fixtures" / "entity_snapshot.json"
 
 

@@ -23,11 +23,14 @@ from custom_components.sungrow_isolarcloud.const import (
     CONF_BASE_URL,
     CONF_PS_ID,
     CONF_SECRET_KEY,
-    DEVICE_TYPE_BATTERY,
-    DEVICE_TYPE_ENERGY_STORAGE,
-    DEVICE_TYPE_PLANT,
     DOMAIN,
 )
+
+# iSolarCloud device_type numbers used in the mocked API payloads
+# (mirroring the device_types keys in catalog.yaml).
+DEVICE_TYPE_PLANT = 11
+DEVICE_TYPE_ENERGY_STORAGE = 14
+DEVICE_TYPE_BATTERY = 43
 
 # pytest-homeassistant-custom-component blocks socket *creation* for every
 # test. On Windows the asyncio event loop itself needs a loopback socketpair,
