@@ -1,0 +1,465 @@
+# catalog.yaml — single source of truth for the API→HA mapping.
+# See docs/declarative-catalog-design.md for the schema.
+version: 1
+
+# API unit string -> HA unit constant. Unmapped API units pass
+# through verbatim (e.g. currency codes on income sensors).
+unit_map:
+  "W": W
+  "kW": kW
+  "MW": MW
+  "Wh": Wh
+  "kWh": kWh
+  "MWh": MWh
+  "%": "%"
+  "℃": °C
+  "°C": °C
+  "h": h
+  "H": h
+  "V": V
+  "mV": mV
+  "A": A
+  "kg": kg
+
+device_types:
+  "11":
+    key: plant
+    name: Plant
+    synthetic: true
+    problem_sensor: true
+    points:
+      "83022":
+        name: Plant daily yield
+        unit: Wh
+        device_class: energy
+        state_class: total_increasing
+        backfill: sum
+      "83024":
+        name: Plant total yield
+        unit: Wh
+        device_class: energy
+        state_class: total_increasing
+      "83033":
+        name: Plant power
+        unit: W
+        device_class: power
+        backfill: mean
+      "83106":
+        name: Load power
+        unit: W
+        device_class: power
+        backfill: mean
+      "83072":
+        name: Feed-in energy today
+        unit: Wh
+        device_class: energy
+        state_class: total_increasing
+        backfill: sum
+      "83075":
+        name: Total feed-in energy
+        unit: Wh
+        device_class: energy
+        state_class: total_increasing
+      "83102":
+        name: Energy purchased today
+        unit: Wh
+        device_class: energy
+        state_class: total_increasing
+        backfill: sum
+      "83105":
+        name: Total purchased energy
+        unit: Wh
+        device_class: energy
+        state_class: total_increasing
+      "83097":
+        name: Daily PV energy consumed by loads
+        unit: Wh
+        device_class: energy
+        state_class: total_increasing
+      "83100":
+        name: Total PV energy consumed by loads
+        unit: Wh
+        device_class: energy
+        state_class: total_increasing
+      "83118":
+        name: Daily load consumption
+        unit: Wh
+        device_class: energy
+        state_class: total_increasing
+        backfill: sum
+      "83124":
+        name: Total load consumption
+        unit: Wh
+        device_class: energy
+        state_class: total_increasing
+      "83252":
+        name: Battery level (SOC)
+        unit: "%"
+        device_class: battery
+        scale: 100
+        backfill: mean
+      "83322":
+        name: ESS daily charge
+        unit: Wh
+        device_class: energy
+        state_class: total_increasing
+      "83323":
+        name: ESS daily discharge
+        unit: Wh
+        device_class: energy
+        state_class: total_increasing
+      "83324":
+        name: ESS total charge
+        unit: Wh
+        device_class: energy
+        state_class: total_increasing
+      "83325":
+        name: ESS total discharge
+        unit: Wh
+        device_class: energy
+        state_class: total_increasing
+      "83326":
+        name: ESS active power
+        unit: W
+        device_class: power
+      "83327":
+        name: ESS remaining energy
+        unit: Wh
+        device_class: energy_storage
+      "83328":
+        name: Grid active power
+        unit: W
+        device_class: power
+      "83329":
+        name: PV active power
+        unit: W
+        device_class: power
+      "83330":
+        name: Load active power
+        unit: W
+        device_class: power
+      "83025":
+        name: Plant equivalent hours
+        unit: h
+
+  "14":
+    key: energy_storage
+    name: Hybrid inverter / energy storage
+    problem_sensor: true
+    points:
+      "13003":
+        name: Total DC power
+        unit: W
+        device_class: power
+      "13011":
+        name: Total active power
+        unit: W
+        device_class: power
+      "13112":
+        name: Daily generation
+        unit: Wh
+        device_class: energy
+        state_class: total_increasing
+      "13134":
+        name: Total generation
+        unit: Wh
+        device_class: energy
+        state_class: total_increasing
+      "13116":
+        name: Daily PV energy consumed by loads
+        unit: Wh
+        device_class: energy
+        state_class: total_increasing
+      "13137":
+        name: Total PV energy consumed by loads
+        unit: Wh
+        device_class: energy
+        state_class: total_increasing
+      "13119":
+        name: Load power
+        unit: W
+        device_class: power
+      "13121":
+        name: Feed-in power
+        unit: W
+        device_class: power
+      "13122":
+        name: Feed-in energy today
+        unit: Wh
+        device_class: energy
+        state_class: total_increasing
+      "13126":
+        name: Battery charging power
+        unit: W
+        device_class: power
+      "13150":
+        name: Battery discharging power
+        unit: W
+        device_class: power
+      "13141":
+        name: Battery level (SOC)
+        unit: "%"
+        device_class: battery
+        scale: 100
+      "13142":
+        name: Battery SOH
+        unit: "%"
+        scale: 100
+      "13143":
+        name: Battery temperature
+        unit: °C
+        device_class: temperature
+      "13149":
+        name: Grid energy purchasing power
+        unit: W
+        device_class: power
+      "13147":
+        name: Energy purchased today
+        unit: Wh
+        device_class: energy
+        state_class: total_increasing
+      "13148":
+        name: Total purchased energy
+        unit: Wh
+        device_class: energy
+        state_class: total_increasing
+      "13028":
+        name: Battery charge today
+        unit: Wh
+        device_class: energy
+        state_class: total_increasing
+      "13029":
+        name: Battery discharge today
+        unit: Wh
+        device_class: energy
+        state_class: total_increasing
+      "13035":
+        name: Total battery discharge
+        unit: Wh
+        device_class: energy
+        state_class: total_increasing
+      "13199":
+        name: Daily load consumption
+        unit: Wh
+        device_class: energy
+        state_class: total_increasing
+      "13130":
+        name: Total load consumption
+        unit: Wh
+        device_class: energy
+        state_class: total_increasing
+
+    # Writable parameters (paramSetting API), verified live
+    # against a SH10RT hybrid inverter. Runtime still gates on
+    # the enable_control option + paramSettingCheck + read-back.
+    controls:
+      numbers:
+        - code: "10001"
+          name: SOC upper limit
+          min: 50
+          max: 100
+          step: 5
+          unit: "%"
+          mode: slider
+        - code: "10002"
+          name: SOC lower limit
+          min: 0
+          max: 50
+          step: 5
+          unit: "%"
+          mode: slider
+        - code: "10005"
+          name: Charging/discharging power
+          min: 0
+          max: 30
+          step: 0.01
+          unit: kW
+          category: null
+        - code: "10071"
+          name: Forced charging target SOC 1
+          min: 0
+          max: 100
+          step: 5
+          unit: "%"
+          mode: slider
+        - code: "10076"
+          name: Forced charging target SOC 2
+          min: 0
+          max: 100
+          step: 5
+          unit: "%"
+          mode: slider
+        - code: "10091"
+          name: Max charging power
+          min: 0
+          max: 30
+          step: 0.01
+          unit: kW
+        - code: "10092"
+          name: Max discharging power
+          min: 0
+          max: 30
+          step: 0.01
+          unit: kW
+        - code: "10008"
+          name: Active power limit ratio
+          min: 0
+          max: 100
+          step: 1
+          unit: "%"
+          mode: slider
+          category: null
+        - code: "10013"
+          name: Feed-in power limit
+          min: 0
+          max: 30
+          step: 0.01
+          unit: kW
+          category: null
+        - code: "10014"
+          name: Feed-in power limit ratio
+          min: 0
+          max: 100
+          step: 1
+          unit: "%"
+          mode: slider
+          category: null
+      selects:
+        - code: "10004"
+          name: Charging/discharging command
+          options:
+            Charge: "170"
+            Discharge: "187"
+            Stop: "204"
+      switches:
+        - code: "10065"
+          name: Forced charging
+          on_value: "170"
+          off_value: "85"
+        - code: "10007"
+          name: Active power limitation
+          on_value: "170"
+          off_value: "85"
+          category: null
+        - code: "10012"
+          name: Feed-in power limitation
+          on_value: "170"
+          off_value: "85"
+          category: null
+      times:
+        - key: forced_charging_1_start
+          name: Forced charging 1 start
+          hour_code: "10067"
+          minute_code: "10068"
+        - key: forced_charging_1_end
+          name: Forced charging 1 end
+          hour_code: "10069"
+          minute_code: "10070"
+        - key: forced_charging_2_start
+          name: Forced charging 2 start
+          hour_code: "10072"
+          minute_code: "10073"
+        - key: forced_charging_2_end
+          name: Forced charging 2 end
+          hour_code: "10074"
+          minute_code: "10075"
+
+  "43":
+    key: battery
+    name: Battery / BMS
+    problem_sensor: true
+    points:
+      "58601":
+        name: Battery voltage
+        unit: V
+        device_class: voltage
+      "58602":
+        name: Battery current
+        unit: A
+        device_class: current
+      "58603":
+        name: Battery temperature
+        unit: °C
+        device_class: temperature
+      "58604":
+        name: Battery SOC
+        unit: "%"
+        device_class: battery
+        scale: 100
+      "58605":
+        name: Battery health
+        unit: "%"
+        scale: 100
+      "58606":
+        name: Total battery charge
+        unit: Wh
+        device_class: energy
+        state_class: total_increasing
+      "58607":
+        name: Total battery discharge
+        unit: Wh
+        device_class: energy
+        state_class: total_increasing
+      "58610":
+        name: Max cell voltage
+        unit: mV
+        device_class: voltage
+        category: diagnostic
+      "58612":
+        name: Min cell voltage
+        unit: mV
+        device_class: voltage
+        category: diagnostic
+      "58614":
+        name: Max module temperature
+        unit: °C
+        device_class: temperature
+        category: diagnostic
+      "58616":
+        name: Min module temperature
+        unit: °C
+        device_class: temperature
+        category: diagnostic
+
+  "22":
+    key: comm_module
+    name: Communication module
+    problem_sensor: true
+    points:
+      "23014":
+        name: WLAN signal strength
+        unit: dBm
+        device_class: signal_strength
+        category: diagnostic
+      "23001":
+        name: Wireless signal strength
+        state_class: null
+        category: diagnostic
+      "23006":
+        name: Restart count
+        state_class: total_increasing
+        category: diagnostic
+
+# Plant-list financial/environmental fields (getPowerStationList
+# rows shaped {"unit": ..., "value": ...}); unit comes from the API.
+economics:
+  today_income:
+    name: Income today
+    device_class: monetary
+    state_class: total
+  year_income:
+    name: Income this year
+    device_class: monetary
+    state_class: total
+  total_income:
+    name: Total income
+    device_class: monetary
+    state_class: total
+  co2_reduce:
+    name: CO2 reduction today
+    device_class: weight
+    state_class: total_increasing
+  co2_reduce_total:
+    name: Total CO2 reduction
+    device_class: weight
+    state_class: total_increasing
