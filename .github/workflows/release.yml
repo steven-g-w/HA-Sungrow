@@ -1,0 +1,37 @@
+name: Release
+
+# Manually dispatched: creates the git tag and the GitHub release, with
+# notes taken from docs/releases/<tag>.md. The manifest version must
+# match the tag so HACS serves a consistent version.
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag (e.g. v0.9.0)"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check manifest version matches tag
+        run: |
+          TAG="${{ github.event.inputs.tag }}"
+          VERSION="$(jq -r .version custom_components/sungrow_isolarcloud/manifest.json)"
+          if [ "v$VERSION" != "$TAG" ]; then
+            echo "manifest version v$VERSION does not match tag $TAG" >&2
+            exit 1
+          fi
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="${{ github.event.inputs.tag }}"
+          gh release create "$TAG" \
+            --target "$GITHUB_SHA" \
+            --title "$TAG" \
+            --notes-file "docs/releases/$TAG.md"
