@@ -9,7 +9,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from . import SungrowConfigEntry
-from .controls import TIMES, TimeDef
+from .catalog import TimeDef
 from .coordinator import SungrowControlCoordinator
 from .entity import SungrowControlEntity
 
@@ -26,7 +26,7 @@ async def async_setup_entry(
     data = control.data or {}
     async_add_entities(
         SungrowParamTime(control, definition)
-        for definition in TIMES
+        for definition in control.controls.times
         if definition.hour_code in data and definition.minute_code in data
     )
 

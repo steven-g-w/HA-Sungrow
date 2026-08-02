@@ -34,21 +34,14 @@ from .const import (
     BACKFILL_CHUNK_HOURS,
     BACKFILL_DAYS,
     BACKFILL_MINUTE_INTERVAL,
-    DEVICE_TYPE_PLANT,
     DOMAIN,
 )
 from .coordinator import SungrowCoordinator
-from .points import DEVICE_TYPE_POINTS, resolve_unit
 
 _LOGGER = logging.getLogger(__name__)
 
 TS_FORMAT = "%Y%m%d%H%M%S"
 
-# Plant-level (device_type 11) points to import. Daily-resetting energy
-# counters become 'sum' statistics; instantaneous readings become 'mean'.
-ENERGY_POINTS: tuple[str, ...] = ("83022", "83072", "83102", "83118")
-MEASUREMENT_POINTS: tuple[str, ...] = ("83033", "83106", "83252")
-ALL_BACKFILL_POINTS: tuple[str, ...] = ENERGY_POINTS + MEASUREMENT_POINTS
 
 
 def _parse_ts(raw: str) -> datetime | None:
@@ -80,10 +73,17 @@ async def async_backfill(
     client = coordinator.client
     ps_key = coordinator.plant_ps_key
     registry = er.async_get(hass)
+    catalog = coordinator.catalog
+    plant_type = catalog.synthetic_device_type
+    # Which plant points to import: catalog points opted in via `backfill`.
+    # Daily-resetting energy counters ("sum") become cumulative statistics;
+    # instantaneous readings ("mean") become hourly mean/min/max.
+    energy_points = catalog.backfill_points("sum")
+    all_points = energy_points + catalog.backfill_points("mean")
 
     # Map point id -> entity_id of the existing sensor.
     entity_ids: dict[str, str] = {}
-    for point_id in ALL_BACKFILL_POINTS:
+    for point_id in all_points:
         entity_id = registry.async_get_entity_id(
             "sensor", DOMAIN, f"{ps_key}_{point_id}"
         )
@@ -123,7 +123,7 @@ async def async_backfill(
             for point_id in entity_ids:
                 raw = frame.get(f"p{point_id}")
                 value = coordinator._build_point_value(
-                    point_id, raw, DEVICE_TYPE_PLANT
+                    point_id, raw, plant_type
                 ).value
                 if isinstance(value, float):
                     samples[point_id].append((when, value))
@@ -148,12 +148,12 @@ async def async_backfill(
         # Resolve the unit exactly like the sensor platform does (API
         # metadata first, catalog fallback) — the statistic's unit must
         # match the sensor's, or recorder's unit conversion skews values.
-        catalog_def = DEVICE_TYPE_POINTS[DEVICE_TYPE_PLANT].get(point_id)
-        unit = resolve_unit(
-            coordinator._build_point_value(point_id, "0", DEVICE_TYPE_PLANT).unit,
+        catalog_def = catalog.points_for(plant_type).get(point_id)
+        unit = catalog.resolve_unit(
+            coordinator._build_point_value(point_id, "0", plant_type).unit,
             catalog_def.unit if catalog_def else None,
         )
-        is_energy = point_id in ENERGY_POINTS
+        is_energy = point_id in energy_points
         stats = (
             _energy_stats(series) if is_energy else _measurement_stats(series)
         )

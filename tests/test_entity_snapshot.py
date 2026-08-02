@@ -34,8 +34,11 @@ def _collect(hass: HomeAssistant, entry: MockConfigEntry) -> dict[str, Any]:
     entities: dict[str, Any] = {}
     for reg in er.async_entries_for_config_entry(entity_registry, entry.entry_id):
         state = hass.states.get(reg.entity_id)
+        # entity_id is deliberately NOT snapshotted: fresh-install slugs
+        # depend on platform-setup interleaving (colliding names get _2
+        # suffixes); identity is the unique_id, which the registry uses to
+        # keep entity_ids stable on real installs.
         entities[f"{reg.domain}:{reg.unique_id}"] = {
-            "entity_id": reg.entity_id,
             "original_name": reg.original_name,
             "original_device_class": reg.original_device_class,
             "unit_of_measurement": reg.unit_of_measurement,

@@ -7,7 +7,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from . import SungrowConfigEntry
-from .controls import NUMBERS, NumberDef
+from .catalog import NumberDef
 from .coordinator import SungrowControlCoordinator
 from .entity import SungrowControlEntity, format_param_value
 
@@ -23,7 +23,7 @@ async def async_setup_entry(
         return
     async_add_entities(
         SungrowParamNumber(control, definition)
-        for definition in NUMBERS
+        for definition in control.controls.numbers
         if definition.code in (control.data or {})
     )
 

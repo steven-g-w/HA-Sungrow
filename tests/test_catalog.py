@@ -222,7 +222,6 @@ def test_parity_with_python_catalogs() -> None:
     This is the refactor's safety net; it is deleted together with
     points.py/controls.py once all consumers read the Catalog.
     """
-    from custom_components.sungrow_isolarcloud import backfill as B
     from custom_components.sungrow_isolarcloud import controls as C
     from custom_components.sungrow_isolarcloud import points as P
 
@@ -316,6 +315,3 @@ def test_parity_with_python_catalogs() -> None:
             old.entity_category,
         ), old.key
     assert controls.all_param_codes == C.ALL_PARAM_CODES
-
-    assert catalog.backfill_points("sum") == B.ENERGY_POINTS
-    assert catalog.backfill_points("mean") == B.MEASUREMENT_POINTS

@@ -20,7 +20,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from . import SungrowConfigEntry
-from .const import DEVICE_TYPE_PLANT, DOMAIN
+from .const import DOMAIN
 from .coordinator import SungrowCoordinator, SungrowDevice
 
 # dev_fault_status values (matches the iSolarCloud API's fault status enum).
@@ -48,7 +48,11 @@ async def async_setup_entry(
     entities = []
     for ps_key, device_status in data.status.items():
         device = data.devices.get(ps_key)
-        if device is None or device_status.get("dev_fault_status") is None:
+        if (
+            device is None
+            or device_status.get("dev_fault_status") is None
+            or not coordinator.catalog.problem_sensor_for(device.device_type)
+        ):
             continue
         entities.append(SungrowProblemSensor(coordinator, device))
     async_add_entities(entities)
@@ -69,7 +73,7 @@ class SungrowProblemSensor(CoordinatorEntity[SungrowCoordinator], BinarySensorEn
         self._ps_key = device.ps_key
         self._attr_unique_id = f"{device.ps_key}_problem"
         device_info = DeviceInfo(identifiers={(DOMAIN, device.ps_key)})
-        if device.device_type != DEVICE_TYPE_PLANT:
+        if device.device_type != coordinator.catalog.synthetic_device_type:
             device_info["via_device"] = (DOMAIN, coordinator.plant_ps_key)
         self._attr_device_info = device_info
 

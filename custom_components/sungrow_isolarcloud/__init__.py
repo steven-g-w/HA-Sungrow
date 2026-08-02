@@ -11,6 +11,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .api import SET_TYPE_WRITE, SungrowApiClient, SungrowApiError
+from .catalog import Catalog, load_catalog
 from .const import (
     CONF_APP_KEY,
     CONF_BASE_URL,
@@ -18,7 +19,6 @@ from .const import (
     CONF_ENABLE_CONTROL,
     CONF_SECRET_KEY,
     DATA_BACKFILL_DONE,
-    DEVICE_TYPE_ENERGY_STORAGE,
     PLATFORMS,
 )
 from .coordinator import SungrowControlCoordinator, SungrowCoordinator
@@ -31,6 +31,7 @@ class SungrowRuntimeData:
     """Runtime objects stored on the config entry."""
 
     coordinator: SungrowCoordinator
+    catalog: Catalog
     control: SungrowControlCoordinator | None = None
 
 
@@ -44,19 +45,19 @@ async def _async_setup_control(
     coordinator: SungrowCoordinator,
 ) -> SungrowControlCoordinator | None:
     """Set up the control coordinator if the user opted in and it's supported."""
+    catalog = coordinator.catalog
     device = next(
         (
             d
             for d in coordinator.data.devices.values()
-            if d.device_type == DEVICE_TYPE_ENERGY_STORAGE and d.uuid
+            if catalog.controls_for(d.device_type) is not None and d.uuid
         ),
         None,
     )
     if device is None:
         _LOGGER.warning(
-            "Control is enabled but no energy storage system (device type %s) "
-            "with a uuid was found; no control entities will be created",
-            DEVICE_TYPE_ENERGY_STORAGE,
+            "Control is enabled but no controllable device with a uuid was "
+            "found; no control entities will be created"
         )
         return None
     try:
@@ -77,13 +78,16 @@ async def _async_setup_control(
             device.ps_key,
         )
         return None
-    control = SungrowControlCoordinator(hass, entry, client, device)
+    control = SungrowControlCoordinator(
+        hass, entry, client, device, catalog.controls_for(device.device_type)
+    )
     await control.async_config_entry_first_refresh()
     return control
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: SungrowConfigEntry) -> bool:
     """Set up Sungrow iSolarCloud from a config entry."""
+    catalog = await hass.async_add_executor_job(load_catalog)
     client = SungrowApiClient(
         async_get_clientsession(hass),
         entry.data[CONF_BASE_URL],
@@ -92,14 +96,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: SungrowConfigEntry) -> b
         entry.data[CONF_USERNAME],
         entry.data[CONF_PASSWORD],
     )
-    coordinator = SungrowCoordinator(hass, entry, client)
+    coordinator = SungrowCoordinator(hass, entry, client, catalog)
     await coordinator.async_config_entry_first_refresh()
 
     control: SungrowControlCoordinator | None = None
     if entry.options.get(CONF_ENABLE_CONTROL, False):
         control = await _async_setup_control(hass, entry, client, coordinator)
 
-    entry.runtime_data = SungrowRuntimeData(coordinator=coordinator, control=control)
+    entry.runtime_data = SungrowRuntimeData(
+        coordinator=coordinator, catalog=catalog, control=control
+    )
     entry.async_on_unload(entry.add_update_listener(_async_update_listener))
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 

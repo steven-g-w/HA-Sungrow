@@ -11,15 +11,9 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from . import SungrowConfigEntry
-from .const import DEVICE_TYPE_PLANT, DOMAIN
+from .catalog import PointDef
+from .const import DOMAIN
 from .coordinator import PointValue, SungrowCoordinator, SungrowDevice
-from .points import (
-    DEVICE_TYPE_POINTS,
-    ECON_DEFS,
-    PointDef,
-    infer_point_def,
-    resolve_unit,
-)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -60,8 +54,9 @@ async def async_setup_entry(
         if new_entities:
             # Plant entities first so the plant device exists in the registry
             # before child devices reference it via via_device.
+            plant_type = coordinator.catalog.synthetic_device_type
             new_entities.sort(
-                key=lambda entity: entity.device_type != DEVICE_TYPE_PLANT
+                key=lambda entity: entity.device_type != plant_type
             )
             _LOGGER.debug("Adding %d Sungrow sensor(s)", len(new_entities))
             async_add_entities(new_entities)
@@ -88,15 +83,19 @@ class SungrowPointSensor(CoordinatorEntity[SungrowCoordinator], SensorEntity):
         self.device_type = device.device_type
         self._attr_unique_id = f"{device.ps_key}_{point_id}"
 
-        catalog = DEVICE_TYPE_POINTS.get(device.device_type, {})
-        point_def: PointDef | None = catalog.get(point_id)
+        catalog = coordinator.catalog
+        point_def: PointDef | None = catalog.points_for(
+            device.device_type
+        ).get(point_id)
         if point_def is None:
-            point_def = infer_point_def(point_id, reading.name, reading.unit)
+            point_def = catalog.infer_point_def(
+                point_id, reading.name, reading.unit
+            )
 
         # Prefer the name/unit reported by the API's point dictionary; fall
         # back to the local catalog.
         self._attr_name = reading.name or point_def.name
-        self._attr_native_unit_of_measurement = resolve_unit(
+        self._attr_native_unit_of_measurement = catalog.resolve_unit(
             reading.unit, point_def.unit
         )
         self._attr_device_class = point_def.device_class
@@ -112,7 +111,7 @@ class SungrowPointSensor(CoordinatorEntity[SungrowCoordinator], SensorEntity):
             device_info["model"] = str(device.model)
         if device.serial:
             device_info["serial_number"] = str(device.serial)
-        if device.device_type != DEVICE_TYPE_PLANT:
+        if device.device_type != catalog.synthetic_device_type:
             device_info["via_device"] = (DOMAIN, coordinator.plant_ps_key)
         self._attr_device_info = device_info
 
@@ -143,7 +142,7 @@ class SungrowEconSensor(CoordinatorEntity[SungrowCoordinator], SensorEntity):
     def __init__(self, coordinator: SungrowCoordinator, key: str) -> None:
         super().__init__(coordinator)
         self._key = key
-        definition = ECON_DEFS[key]
+        definition = coordinator.catalog.economics[key]
         self._attr_unique_id = f"{coordinator.plant_ps_key}_econ_{key}"
         self._attr_name = definition.name
         self._attr_device_class = definition.device_class
@@ -151,13 +150,13 @@ class SungrowEconSensor(CoordinatorEntity[SungrowCoordinator], SensorEntity):
         econ = (coordinator.data.economics if coordinator.data else {}).get(key)
         # Currency codes (AUD, EUR, ...) pass through resolve_unit unchanged;
         # kg maps to the HA mass unit.
-        self._attr_native_unit_of_measurement = resolve_unit(
+        self._attr_native_unit_of_measurement = coordinator.catalog.resolve_unit(
             econ.unit if econ else None, None
         )
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, coordinator.plant_ps_key)}
         )
-        self.device_type = DEVICE_TYPE_PLANT
+        self.device_type = coordinator.catalog.synthetic_device_type
 
     @property
     def native_value(self) -> float | None:

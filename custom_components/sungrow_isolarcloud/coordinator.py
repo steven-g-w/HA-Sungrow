@@ -14,16 +14,14 @@ from homeassistant.exceptions import ConfigEntryAuthFailed, HomeAssistantError
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .api import SungrowApiClient, SungrowApiError, SungrowAuthError
+from .catalog import Catalog, ControlsDef, PointDef
 from .const import (
     CONF_PS_ID,
     CONF_SCAN_INTERVAL,
     CONTROL_REFRESH_INTERVAL,
     DEFAULT_SCAN_INTERVAL,
-    DEVICE_TYPE_PLANT,
     DOMAIN,
 )
-from .controls import ALL_PARAM_CODES
-from .points import DEVICE_TYPE_POINTS, ECON_DEFS, PointDef
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -100,7 +98,11 @@ class SungrowCoordinator(DataUpdateCoordinator[SungrowData]):
     config_entry: ConfigEntry
 
     def __init__(
-        self, hass: HomeAssistant, entry: ConfigEntry, client: SungrowApiClient
+        self,
+        hass: HomeAssistant,
+        entry: ConfigEntry,
+        client: SungrowApiClient,
+        catalog: Catalog,
     ) -> None:
         scan_interval = entry.options.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
         super().__init__(
@@ -111,6 +113,7 @@ class SungrowCoordinator(DataUpdateCoordinator[SungrowData]):
             update_interval=timedelta(seconds=scan_interval),
         )
         self.client = client
+        self.catalog = catalog
         self.ps_id: str = str(entry.data[CONF_PS_ID])
         self._devices: dict[str, SungrowDevice] | None = None
         # Point metadata (name/units) per device type, fetched once from
@@ -120,7 +123,7 @@ class SungrowCoordinator(DataUpdateCoordinator[SungrowData]):
     @property
     def plant_ps_key(self) -> str:
         """ps_key of the plant pseudo-device."""
-        return f"{self.ps_id}_11_0_0"
+        return f"{self.ps_id}_{self.catalog.synthetic_device_type}_0_0"
 
     async def _async_fetch_plant_row(self) -> dict[str, Any] | None:
         """Return this plant's row from getPowerStationList (or None)."""
@@ -136,11 +139,12 @@ class SungrowCoordinator(DataUpdateCoordinator[SungrowData]):
                 return plant
         return None
 
-    @staticmethod
-    def _parse_economics(row: dict[str, Any] | None) -> dict[str, EconValue]:
+    def _parse_economics(
+        self, row: dict[str, Any] | None
+    ) -> dict[str, EconValue]:
         """Extract income/CO2 figures ({'unit':..., 'value':...} fields)."""
         economics: dict[str, EconValue] = {}
-        for key in ECON_DEFS:
+        for key in self.catalog.economics:
             field_value = (row or {}).get(key)
             if not isinstance(field_value, dict):
                 continue
@@ -158,10 +162,11 @@ class SungrowCoordinator(DataUpdateCoordinator[SungrowData]):
         self, plant_name: str | None
     ) -> dict[str, SungrowDevice]:
         """Fetch the device list and add the plant pseudo-device."""
+        plant_type = self.catalog.synthetic_device_type
         devices: dict[str, SungrowDevice] = {
             self.plant_ps_key: SungrowDevice(
                 ps_key=self.plant_ps_key,
-                device_type=DEVICE_TYPE_PLANT,
+                device_type=plant_type,
                 name=plant_name or f"Plant {self.ps_id}",
             )
         }
@@ -171,7 +176,7 @@ class SungrowCoordinator(DataUpdateCoordinator[SungrowData]):
             if not ps_key or device_type is None:
                 continue
             device_type = int(device_type)
-            if device_type == DEVICE_TYPE_PLANT:
+            if device_type == plant_type:
                 continue  # already covered by the pseudo-device
             name = (
                 raw.get("device_name")
@@ -244,7 +249,7 @@ class SungrowCoordinator(DataUpdateCoordinator[SungrowData]):
             device_types = {
                 d.device_type
                 for d in self._devices.values()
-                if d.device_type in DEVICE_TYPE_POINTS
+                if self.catalog.points_for(d.device_type)
             }
             if self._point_meta is None:
                 self._point_meta = await self._async_fetch_point_meta(device_types)
@@ -252,14 +257,14 @@ class SungrowCoordinator(DataUpdateCoordinator[SungrowData]):
             points: dict[str, dict[str, PointValue]] = {}
             status: dict[str, dict[str, int | None]] = {}
             for device_type in device_types:
-                catalog = DEVICE_TYPE_POINTS[device_type]
+                point_ids = list(self.catalog.points_for(device_type))
                 ps_keys = [
                     d.ps_key
                     for d in self._devices.values()
                     if d.device_type == device_type
                 ]
                 result = await self.client.async_get_realtime_data(
-                    device_type, ps_keys, list(catalog)
+                    device_type, ps_keys, point_ids
                 )
                 self._merge_result(points, status, result, device_type)
             return SungrowData(
@@ -293,8 +298,8 @@ class SungrowCoordinator(DataUpdateCoordinator[SungrowData]):
             else:
                 unit = storage_unit or None
         else:
-            catalog_def: PointDef | None = DEVICE_TYPE_POINTS.get(
-                device_type, {}
+            catalog_def: PointDef | None = self.catalog.points_for(
+                device_type
             ).get(point_id)
             if catalog_def is not None:
                 scale = catalog_def.scale
@@ -350,6 +355,7 @@ class SungrowControlCoordinator(DataUpdateCoordinator[dict[str, dict[str, Any]]]
         entry: ConfigEntry,
         client: SungrowApiClient,
         device: SungrowDevice,
+        controls: ControlsDef,
     ) -> None:
         super().__init__(
             hass,
@@ -360,6 +366,7 @@ class SungrowControlCoordinator(DataUpdateCoordinator[dict[str, dict[str, Any]]]
         )
         self.client = client
         self.device = device
+        self.controls = controls
         self.uuid: str = str(device.uuid)
         self.ps_key: str = device.ps_key
         # paramSetting tasks must not overlap (reads and writes share the
@@ -370,7 +377,7 @@ class SungrowControlCoordinator(DataUpdateCoordinator[dict[str, dict[str, Any]]]
         try:
             async with self._task_lock:
                 rows = await self.client.async_read_params(
-                    self.uuid, list(ALL_PARAM_CODES)
+                    self.uuid, list(self.controls.all_param_codes)
                 )
         except SungrowAuthError as err:
             raise ConfigEntryAuthFailed(str(err)) from err

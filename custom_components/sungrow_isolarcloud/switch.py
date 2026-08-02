@@ -9,7 +9,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from . import SungrowConfigEntry
-from .controls import SWITCHES, SwitchDef
+from .catalog import SwitchDef
 from .coordinator import SungrowControlCoordinator
 from .entity import SungrowControlEntity
 
@@ -25,7 +25,7 @@ async def async_setup_entry(
         return
     async_add_entities(
         SungrowParamSwitch(control, definition)
-        for definition in SWITCHES
+        for definition in control.controls.switches
         if definition.code in (control.data or {})
     )
 

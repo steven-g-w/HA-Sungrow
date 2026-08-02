@@ -8,7 +8,7 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from . import SungrowConfigEntry
-from .controls import SELECTS, SelectDef
+from .catalog import SelectDef
 from .coordinator import SungrowControlCoordinator
 from .entity import SungrowControlEntity
 
@@ -24,7 +24,7 @@ async def async_setup_entry(
         return
     async_add_entities(
         SungrowParamSelect(control, definition)
-        for definition in SELECTS
+        for definition in control.controls.selects
         if definition.code in (control.data or {})
     )
 

@@ -39,7 +39,6 @@
       },
       "capabilities": null,
       "entity_category": "diagnostic",
-      "entity_id": "binary_sensor.sungrow_plant_999001_problem_2",
       "original_device_class": "problem",
       "original_name": "Problem",
       "state": "off",
@@ -54,7 +53,6 @@
       },
       "capabilities": null,
       "entity_category": "diagnostic",
-      "entity_id": "binary_sensor.sungrow_plant_999001_problem_3",
       "original_device_class": "problem",
       "original_name": "Problem",
       "state": "off",
@@ -69,7 +67,6 @@
       },
       "capabilities": null,
       "entity_category": "diagnostic",
-      "entity_id": "binary_sensor.sungrow_plant_999001_problem",
       "original_device_class": "problem",
       "original_name": "Problem",
       "state": "off",
@@ -78,20 +75,19 @@
     "number:999001_14_1_1_ctl_10001": {
       "attributes": {
         "friendly_name": "SH10RT SOC upper limit",
-        "max": 100,
-        "min": 50,
+        "max": 100.0,
+        "min": 50.0,
         "mode": "slider",
-        "step": 5,
+        "step": 5.0,
         "unit_of_measurement": "%"
       },
       "capabilities": {
-        "max": 100,
-        "min": 50,
+        "max": 100.0,
+        "min": 50.0,
         "mode": "slider",
-        "step": 5
+        "step": 5.0
       },
       "entity_category": "config",
-      "entity_id": "number.sungrow_plant_999001_soc_upper_limit",
       "original_device_class": null,
       "original_name": "SOC upper limit",
       "state": "100.0",
@@ -100,20 +96,19 @@
     "number:999001_14_1_1_ctl_10002": {
       "attributes": {
         "friendly_name": "SH10RT SOC lower limit",
-        "max": 50,
-        "min": 0,
+        "max": 50.0,
+        "min": 0.0,
         "mode": "slider",
-        "step": 5,
+        "step": 5.0,
         "unit_of_measurement": "%"
       },
       "capabilities": {
-        "max": 50,
-        "min": 0,
+        "max": 50.0,
+        "min": 0.0,
         "mode": "slider",
-        "step": 5
+        "step": 5.0
       },
       "entity_category": "config",
-      "entity_id": "number.sungrow_plant_999001_soc_lower_limit",
       "original_device_class": null,
       "original_name": "SOC lower limit",
       "state": "5.0",
@@ -122,20 +117,19 @@
     "number:999001_14_1_1_ctl_10005": {
       "attributes": {
         "friendly_name": "SH10RT Charging/discharging power",
-        "max": 30,
-        "min": 0,
+        "max": 30.0,
+        "min": 0.0,
         "mode": "box",
         "step": 0.01,
         "unit_of_measurement": "kW"
       },
       "capabilities": {
-        "max": 30,
-        "min": 0,
+        "max": 30.0,
+        "min": 0.0,
         "mode": "box",
         "step": 0.01
       },
       "entity_category": null,
-      "entity_id": "number.sungrow_plant_999001_charging_discharging_power",
       "original_device_class": null,
       "original_name": "Charging/discharging power",
       "state": "0.0",
@@ -144,20 +138,19 @@
     "number:999001_14_1_1_ctl_10008": {
       "attributes": {
         "friendly_name": "SH10RT Active power limit ratio",
-        "max": 100,
-        "min": 0,
+        "max": 100.0,
+        "min": 0.0,
         "mode": "slider",
-        "step": 1,
+        "step": 1.0,
         "unit_of_measurement": "%"
       },
       "capabilities": {
-        "max": 100,
-        "min": 0,
+        "max": 100.0,
+        "min": 0.0,
         "mode": "slider",
-        "step": 1
+        "step": 1.0
       },
       "entity_category": null,
-      "entity_id": "number.sungrow_plant_999001_active_power_limit_ratio",
       "original_device_class": null,
       "original_name": "Active power limit ratio",
       "state": "100.0",
@@ -166,20 +159,19 @@
     "number:999001_14_1_1_ctl_10013": {
       "attributes": {
         "friendly_name": "SH10RT Feed-in power limit",
-        "max": 30,
-        "min": 0,
+        "max": 30.0,
+        "min": 0.0,
         "mode": "box",
         "step": 0.01,
         "unit_of_measurement": "kW"
       },
       "capabilities": {
-        "max": 30,
-        "min": 0,
+        "max": 30.0,
+        "min": 0.0,
         "mode": "box",
         "step": 0.01
       },
       "entity_category": null,
-      "entity_id": "number.sungrow_plant_999001_feed_in_power_limit",
       "original_device_class": null,
       "original_name": "Feed-in power limit",
       "state": "10.0",
@@ -188,20 +180,19 @@
     "number:999001_14_1_1_ctl_10014": {
       "attributes": {
         "friendly_name": "SH10RT Feed-in power limit ratio",
-        "max": 100,
-        "min": 0,
+        "max": 100.0,
+        "min": 0.0,
         "mode": "slider",
-        "step": 1,
+        "step": 1.0,
         "unit_of_measurement": "%"
       },
       "capabilities": {
-        "max": 100,
-        "min": 0,
+        "max": 100.0,
+        "min": 0.0,
         "mode": "slider",
-        "step": 1
+        "step": 1.0
       },
       "entity_category": null,
-      "entity_id": "number.sungrow_plant_999001_feed_in_power_limit_ratio",
       "original_device_class": null,
       "original_name": "Feed-in power limit ratio",
       "state": "100.0",
@@ -210,20 +201,19 @@
     "number:999001_14_1_1_ctl_10071": {
       "attributes": {
         "friendly_name": "SH10RT Forced charging target SOC 1",
-        "max": 100,
-        "min": 0,
+        "max": 100.0,
+        "min": 0.0,
         "mode": "slider",
-        "step": 5,
+        "step": 5.0,
         "unit_of_measurement": "%"
       },
       "capabilities": {
-        "max": 100,
-        "min": 0,
+        "max": 100.0,
+        "min": 0.0,
         "mode": "slider",
-        "step": 5
+        "step": 5.0
       },
       "entity_category": "config",
-      "entity_id": "number.sungrow_plant_999001_forced_charging_target_soc_1",
       "original_device_class": null,
       "original_name": "Forced charging target SOC 1",
       "state": "0.0",
@@ -232,20 +222,19 @@
     "number:999001_14_1_1_ctl_10091": {
       "attributes": {
         "friendly_name": "SH10RT Max charging power",
-        "max": 30,
-        "min": 0,
+        "max": 30.0,
+        "min": 0.0,
         "mode": "box",
         "step": 0.01,
         "unit_of_measurement": "kW"
       },
       "capabilities": {
-        "max": 30,
-        "min": 0,
+        "max": 30.0,
+        "min": 0.0,
         "mode": "box",
         "step": 0.01
       },
       "entity_category": "config",
-      "entity_id": "number.sungrow_plant_999001_max_charging_power",
       "original_device_class": null,
       "original_name": "Max charging power",
       "state": "10.6",
@@ -268,7 +257,6 @@
         ]
       },
       "entity_category": null,
-      "entity_id": "select.sungrow_plant_999001_charging_discharging_command",
       "original_device_class": null,
       "original_name": "Charging/discharging command",
       "state": "Stop",
@@ -285,7 +273,6 @@
         "state_class": "total_increasing"
       },
       "entity_category": null,
-      "entity_id": "sensor.test_plant_plant_daily_yield",
       "original_device_class": "energy",
       "original_name": "Plant daily yield",
       "state": "12345.0",
@@ -302,7 +289,6 @@
         "state_class": "measurement"
       },
       "entity_category": null,
-      "entity_id": "sensor.test_plant_plant_power",
       "original_device_class": "power",
       "original_name": "Plant power",
       "state": "4321.5",
@@ -319,7 +305,6 @@
         "state_class": "measurement"
       },
       "entity_category": null,
-      "entity_id": "sensor.test_plant_load_power",
       "original_device_class": "power",
       "original_name": "Load power",
       "state": "789.0",
@@ -336,7 +321,6 @@
         "state_class": "measurement"
       },
       "entity_category": null,
-      "entity_id": "sensor.test_plant_battery_level_soc",
       "original_device_class": "battery",
       "original_name": "Battery level (SOC)",
       "state": "41.0",
@@ -353,7 +337,6 @@
         "state_class": "total_increasing"
       },
       "entity_category": null,
-      "entity_id": "sensor.test_plant_co2_reduction_today",
       "original_device_class": "weight",
       "original_name": "CO2 reduction today",
       "state": "12.5",
@@ -370,7 +353,6 @@
         "state_class": "total_increasing"
       },
       "entity_category": null,
-      "entity_id": "sensor.test_plant_total_co2_reduction",
       "original_device_class": "weight",
       "original_name": "Total CO2 reduction",
       "state": "36437.0",
@@ -387,7 +369,6 @@
         "state_class": "total"
       },
       "entity_category": null,
-      "entity_id": "sensor.test_plant_income_today",
       "original_device_class": "monetary",
       "original_name": "Income today",
       "state": "1.23",
@@ -404,7 +385,6 @@
         "state_class": "total"
       },
       "entity_category": null,
-      "entity_id": "sensor.test_plant_total_income",
       "original_device_class": "monetary",
       "original_name": "Total income",
       "state": "7890.0",
@@ -421,7 +401,6 @@
         "state_class": "total"
       },
       "entity_category": null,
-      "entity_id": "sensor.test_plant_income_this_year",
       "original_device_class": "monetary",
       "original_name": "Income this year",
       "state": "456.0",
@@ -438,7 +417,6 @@
         "state_class": "measurement"
       },
       "entity_category": null,
-      "entity_id": "sensor.sh10rt_battery_charging_power",
       "original_device_class": "power",
       "original_name": "Battery charging power",
       "state": "2500.0",
@@ -455,7 +433,6 @@
         "state_class": "measurement"
       },
       "entity_category": null,
-      "entity_id": "sensor.sh10rt_battery_level_soc",
       "original_device_class": "battery",
       "original_name": "Battery level (SOC)",
       "state": "55.0",
@@ -472,7 +449,6 @@
         "state_class": "measurement"
       },
       "entity_category": null,
-      "entity_id": "sensor.sh10rt_battery_discharging_power",
       "original_device_class": "power",
       "original_name": "Battery discharging power",
       "state": "0.0",
@@ -489,7 +465,6 @@
         "state_class": "measurement"
       },
       "entity_category": "diagnostic",
-      "entity_id": "sensor.winet_s_wlan_signal_strength",
       "original_device_class": "signal_strength",
       "original_name": "WLAN signal strength",
       "state": "-53.0",
@@ -506,7 +481,6 @@
         "state_class": "measurement"
       },
       "entity_category": null,
-      "entity_id": "sensor.battery1_battery_voltage",
       "original_device_class": "voltage",
       "original_name": "Battery voltage",
       "state": "523.9",
@@ -523,7 +497,6 @@
         "state_class": "measurement"
       },
       "entity_category": null,
-      "entity_id": "sensor.battery1_battery_soc",
       "original_device_class": "battery",
       "original_name": "Battery SOC",
       "state": "44.0",
@@ -540,7 +513,6 @@
         "state_class": "measurement"
       },
       "entity_category": "diagnostic",
-      "entity_id": "sensor.battery1_max_cell_voltage",
       "original_device_class": "voltage",
       "original_name": "Max cell voltage",
       "state": "3317.5",
@@ -552,7 +524,6 @@
       },
       "capabilities": null,
       "entity_category": null,
-      "entity_id": "switch.sungrow_plant_999001_active_power_limitation",
       "original_device_class": null,
       "original_name": "Active power limitation",
       "state": "on",
@@ -564,7 +535,6 @@
       },
       "capabilities": null,
       "entity_category": null,
-      "entity_id": "switch.sungrow_plant_999001_feed_in_power_limitation",
       "original_device_class": null,
       "original_name": "Feed-in power limitation",
       "state": "off",
@@ -576,7 +546,6 @@
       },
       "capabilities": null,
       "entity_category": "config",
-      "entity_id": "switch.sungrow_plant_999001_forced_charging",
       "original_device_class": null,
       "original_name": "Forced charging",
       "state": "off",
@@ -588,7 +557,6 @@
       },
       "capabilities": null,
       "entity_category": "config",
-      "entity_id": "time.sungrow_plant_999001_forced_charging_1_end",
       "original_device_class": null,
       "original_name": "Forced charging 1 end",
       "state": "05:00:00",
@@ -600,7 +568,6 @@
       },
       "capabilities": null,
       "entity_category": "config",
-      "entity_id": "time.sungrow_plant_999001_forced_charging_1_start",
       "original_device_class": null,
       "original_name": "Forced charging 1 start",
       "state": "01:30:00",
