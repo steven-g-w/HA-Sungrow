@@ -93,8 +93,10 @@ needs 2026.3.0+). You'll also need:
 
 ### Manual
 
-1. Copy `custom_components/sungrow_isolarcloud` into the
-   `custom_components` folder of your Home Assistant configuration directory.
+1. Copy the **whole** `custom_components/sungrow_isolarcloud` folder into
+   the `custom_components` folder of your Home Assistant configuration
+   directory — it contains `catalog.yaml` alongside the Python files, and
+   setup fails without it.
 2. Restart Home Assistant.
 
 ## Configuration
@@ -216,6 +218,9 @@ the iSolarCloud app.
 - **Setup fails with "cannot connect"** — verify the gateway matches your
   account's region and that the plant ID (if provided) belongs to this
   account.
+- **Setup fails with `catalog.yaml is missing`** — a manual install that
+  copied only the Python files. Copy the whole
+  `custom_components/sungrow_isolarcloud` folder and restart.
 
 ## Contributing
 

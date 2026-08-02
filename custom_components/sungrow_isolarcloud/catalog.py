@@ -23,6 +23,7 @@ from pathlib import Path
 from homeassistant.components.number import NumberMode
 from homeassistant.components.sensor import SensorDeviceClass, SensorStateClass
 from homeassistant.const import EntityCategory
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.util.yaml import load_yaml_dict
 import voluptuous as vol
 
@@ -492,5 +493,26 @@ def parse_catalog(raw: dict) -> Catalog:
 
 @lru_cache(maxsize=1)
 def load_catalog() -> Catalog:
-    """Load, validate and cache the shipped catalog (blocking file IO)."""
-    return parse_catalog(load_yaml_dict(str(CATALOG_PATH)))
+    """Load, validate and cache the shipped catalog (blocking file IO).
+
+    Every failure surfaces as CatalogError. A missing file in particular
+    almost always means an incomplete manual install (only the .py files
+    were copied), which is worth saying out loud instead of letting a bare
+    FileNotFoundError reach the log.
+    """
+    try:
+        raw = load_yaml_dict(str(CATALOG_PATH))
+    except FileNotFoundError as err:
+        raise CatalogError(
+            f"{CATALOG_PATH.name} is missing from {CATALOG_PATH.parent}. "
+            "When installing manually, copy the whole "
+            "custom_components/sungrow_isolarcloud folder, not just the "
+            "Python files."
+        ) from err
+    except OSError as err:
+        raise CatalogError(f"{CATALOG_PATH.name} could not be read: {err}") from err
+    except HomeAssistantError as err:
+        raise CatalogError(
+            f"{CATALOG_PATH.name} could not be parsed: {err}"
+        ) from err
+    return parse_catalog(raw)

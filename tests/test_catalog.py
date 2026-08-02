@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+from collections.abc import Generator
 import copy
+from pathlib import Path
 
 import pytest
 
+from custom_components.sungrow_isolarcloud import catalog as catalog_module
 from custom_components.sungrow_isolarcloud.catalog import (
     CatalogError,
     load_catalog,
@@ -127,6 +130,47 @@ def test_shipped_catalog_loads() -> None:
         "83118",
     )
     assert catalog.backfill_points("mean") == ("83033", "83106", "83252")
+
+
+@pytest.fixture
+def catalog_path(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> Generator[Path]:
+    """Point the loader at a throwaway path with a cleared cache."""
+    path = tmp_path / "catalog.yaml"
+    monkeypatch.setattr(catalog_module, "CATALOG_PATH", path)
+    load_catalog.cache_clear()
+    yield path
+    load_catalog.cache_clear()
+
+
+def test_missing_catalog_file_is_actionable(catalog_path: Path) -> None:
+    """A missing catalog.yaml raises CatalogError, not FileNotFoundError.
+
+    This is the incomplete-manual-install case (only the .py files were
+    copied), so the message must say what to do about it.
+    """
+    assert not catalog_path.exists()
+    with pytest.raises(CatalogError) as excinfo:
+        load_catalog()
+    message = str(excinfo.value)
+    assert "catalog.yaml is missing" in message
+    assert "copy the whole" in message.lower()
+    assert isinstance(excinfo.value.__cause__, FileNotFoundError)
+
+
+def test_unparseable_catalog_file(catalog_path: Path) -> None:
+    """Malformed YAML raises CatalogError rather than a raw YAML error."""
+    catalog_path.write_text("version: 1\n  device_types: oops\n")
+    with pytest.raises(CatalogError, match="could not be parsed"):
+        load_catalog()
+
+
+def test_empty_catalog_file(catalog_path: Path) -> None:
+    """An empty file fails schema validation with a CatalogError."""
+    catalog_path.write_text("")
+    with pytest.raises(CatalogError, match="invalid"):
+        load_catalog()
 
 
 def test_parse_minimal() -> None:
