@@ -10,7 +10,6 @@ Usage:  .venv/Scripts/python.exe scripts/live_smoke_test.py
 from __future__ import annotations
 
 import asyncio
-import json
 import sys
 from pathlib import Path
 
@@ -20,8 +19,8 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 
 from custom_components.sungrow_isolarcloud.api import SungrowApiClient  # noqa: E402
-from custom_components.sungrow_isolarcloud.points import (  # noqa: E402
-    DEVICE_TYPE_POINTS,
+from custom_components.sungrow_isolarcloud.catalog import (  # noqa: E402
+    load_catalog,
 )
 
 if sys.platform == "win32":
@@ -51,6 +50,7 @@ def mask(value: str | None) -> str:
 async def main() -> None:
     env = load_env()
     ps_id = env["PS_ID"]
+    catalog = load_catalog()
     # ThreadedResolver avoids an aiodns/pycares version mismatch in the venv.
     connector = aiohttp.TCPConnector(resolver=aiohttp.ThreadedResolver())
     async with aiohttp.ClientSession(connector=connector) as session:
@@ -91,11 +91,15 @@ async def main() -> None:
                     str(dev["ps_key"])
                 )
         # The plant pseudo-device is not in the device list.
-        by_type.setdefault(11, []).insert(0, f"{ps_id}_11_0_0")
+        plant_type = catalog.synthetic_device_type
+        by_type.setdefault(plant_type, []).insert(
+            0, f"{ps_id}_{plant_type}_0_0"
+        )
 
-        for device_type, catalog in DEVICE_TYPE_POINTS.items():
+        for device_type in catalog.device_types:
+            points = catalog.points_for(device_type)
             ps_keys = by_type.get(device_type)
-            if not ps_keys:
+            if not points or not ps_keys:
                 print(f"\n== no devices of type {device_type}, skipping ==")
                 continue
 
@@ -106,7 +110,7 @@ async def main() -> None:
                 f"({len(meta)} metadata rows) =="
             )
             result = await client.async_get_realtime_data(
-                device_type, ps_keys, list(catalog)
+                device_type, ps_keys, list(points)
             )
             for item in result.get("device_point_list") or []:
                 dp = item.get("device_point", item)
@@ -119,7 +123,7 @@ async def main() -> None:
                     storage = (m.get("storage_unit") or "").strip()
                     show = (m.get("show_unit") or "").strip()
                     catalog_name = (
-                        catalog[pid].name if pid in catalog else "<not in catalog>"
+                        points[pid].name if pid in points else "<not in catalog>"
                     )
                     print(
                         f"    p{pid}: value={raw!r:>14}  "

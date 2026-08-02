@@ -206,31 +206,18 @@ the iSolarCloud app.
   account's region and that the plant ID (if provided) belongs to this
   account.
 
-## Development
+## Contributing
 
-Tests live in `tests/` and run against
-[pytest-homeassistant-custom-component](https://github.com/MatthewFlamm/pytest-homeassistant-custom-component):
+Contributions are welcome — see
+**[docs/contributing.md](docs/contributing.md)** for the development
+setup, how to run the tests, and how to add support for new hardware.
 
-```sh
-pip install -r requirements_test.txt
-pytest
-```
-
-`scripts/live_smoke_test.py` exercises the real API end-to-end (login,
-device discovery, point metadata, live values). It reads credentials from a
-git-ignored `.env` file in the repo root:
-
-```env
-BASE_URL=https://augateway.isolarcloud.com
-APP_KEY=...
-SECRET_KEY=...
-USERNAME=...
-PASSWORD=...
-PS_ID=...
-```
-
-CI (GitHub Actions) runs the test suite, [hassfest](https://developers.home-assistant.io/docs/creating_integration_manifest/)
-and HACS validation on every push.
+Adding a sensor, a control or a whole new device type is normally a
+**config-only change**: all mapping between the iSolarCloud API and Home
+Assistant lives in
+[`catalog.yaml`](custom_components/sungrow_isolarcloud/catalog.yaml), with
+the schema and design rationale in
+[docs/declarative-catalog-design.md](docs/declarative-catalog-design.md).
 
 ## Roadmap
 
