@@ -11,9 +11,13 @@
 </p>
 
 > [!WARNING]
-> **Work in progress.** This project is still being built and tested and is
-> **not ready for general use**. Expect breaking changes, renamed entities
-> and rough edges. Use at your own risk for now.
+> **Still maturing.** This integration runs day to day on the maintainer's
+> own system, and its entities are covered by tests — but it has only been
+> verified against one hardware combination (SH10RT inverter, SBR256
+> battery, WiNet-S dongle). Other Sungrow models may expose different
+> measuring points and parameters, and breaking changes are still possible
+> before 1.0. Take particular care with the optional control entities:
+> they write settings to your inverter.
 
 A custom Home Assistant integration that reads data from — and optionally
 controls — a Sungrow solar system through the official
