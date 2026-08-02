@@ -4,7 +4,7 @@ Reads credentials from the git-ignored .env file in the repo root (never
 hardcode credentials here) and exercises the integration's own API client:
 login, device list, and real-time data for every supported device type.
 
-Usage:  .venv/Scripts/python.exe scripts/live_smoke_test.py
+Usage:  python scripts/live_smoke_test.py
 """
 
 from __future__ import annotations

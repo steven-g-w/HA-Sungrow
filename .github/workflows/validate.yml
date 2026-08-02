@@ -18,6 +18,8 @@ jobs:
           python-version: "3.13"
       - name: Install test dependencies
         run: pip install -r requirements_test.txt
+      - name: Lint
+        run: python -m pyflakes custom_components tests scripts
       - name: Run tests
         run: pytest -q
 

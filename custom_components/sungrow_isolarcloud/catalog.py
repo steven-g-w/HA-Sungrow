@@ -16,9 +16,11 @@ Schema reference: docs/declarative-catalog-design.md.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from functools import lru_cache
 from pathlib import Path
+from typing import Any
 
 from homeassistant.components.number import NumberMode
 from homeassistant.components.sensor import SensorDeviceClass, SensorStateClass
@@ -218,11 +220,14 @@ _INFER_DEVICE_CLASS: dict[str, SensorDeviceClass] = {
     "MWh": SensorDeviceClass.ENERGY,
     "°C": SensorDeviceClass.TEMPERATURE,
     "V": SensorDeviceClass.VOLTAGE,
+    "mV": SensorDeviceClass.VOLTAGE,
     "A": SensorDeviceClass.CURRENT,
 }
 
 
-def _enum(enum_cls: type, *, allow_none: bool = False) -> callable:
+def _enum(
+    enum_cls: type, *, allow_none: bool = False
+) -> Callable[[Any], Any]:
     """Validator coercing a YAML string onto an HA enum value."""
 
     def check(value: object) -> object:
