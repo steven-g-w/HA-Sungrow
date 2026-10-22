@@ -4,9 +4,6 @@
   "after_dependencies": [
     "recorder"
   ],
-  "categories": [
-    "energy.solar_batteries"
-  ],
   "codeowners": [
     "@steven-g-w"
   ],
