@@ -325,6 +325,14 @@ device_types:
           mode: slider
           category: null
       selects:
+        # Charge/discharge commands (10004/10005) only actuate outside
+        # Self-consumption. External dispatch (3) and VPP (4) are left
+        # out: they need an EMS heartbeat (10017) we don't send.
+        - code: "10003"
+          name: Energy management mode
+          options:
+            Self-consumption: "0"
+            Compulsory: "2"
         - code: "10004"
           name: Charging/discharging command
           options:

@@ -173,6 +173,30 @@ async def test_select_write(
     assert hass.states.get(select_id).state == "Charge"
 
 
+async def test_ems_mode_select_allowlist_and_write(
+    hass: HomeAssistant,
+    mock_api_client: MagicMock,
+    mock_config_entry_control: MockConfigEntry,
+    entity_registry_enabled_by_default: None,
+) -> None:
+    """API labels are kept, but only for modes the catalog allows."""
+    await _setup(hass, mock_config_entry_control)
+    select_id = _entity_id(hass, "select", f"{ESS_PS_KEY}_ctl_10003")
+    state = hass.states.get(select_id)
+    assert state.state == "Self-consumption mode"
+    assert state.attributes["options"] == ["Self-consumption mode", "Compulsory mode"]
+    await hass.services.async_call(
+        "select",
+        "select_option",
+        {"entity_id": select_id, "option": "Compulsory mode"},
+        blocking=True,
+    )
+    mock_api_client.async_write_params.assert_awaited_once_with(
+        ESS_UUID, {"10003": "2"}
+    )
+    assert hass.states.get(select_id).state == "Compulsory mode"
+
+
 async def test_export_limit_entities_and_write(
     hass: HomeAssistant,
     mock_api_client: MagicMock,

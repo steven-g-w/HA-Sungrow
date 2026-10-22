@@ -175,7 +175,8 @@ the integration's **Configure** dialog ("Enable device control"). When
 enabled (and the device passes the API's support check), these entities are
 added to the inverter device:
 
-- **Select**: charging/discharging command (Charge / Discharge / Stop)
+- **Select**: energy management mode (Self-consumption / Compulsory),
+  charging/discharging command (Charge / Discharge / Stop)
 - **Number**: charging/discharging power, SOC upper/lower limit (5 % slider
   steps), forced charging target SOC 1/2, max charging/discharging power,
   active power limit ratio, feed-in power limit and ratio
@@ -198,6 +199,15 @@ How it behaves:
 - Parameter values are re-read from the device every 30 minutes and
   immediately after each write, so changes made in the iSolarCloud app show
   up in Home Assistant within half an hour.
+
+To force-charge or force-discharge the battery, set **Energy management
+mode** to *Compulsory*, set **Charging/discharging power**, then pick
+*Charge* or *Discharge* as the **Charging/discharging command**. The
+inverter stays in that state until told otherwise, so set the mode back to
+*Self-consumption* when done — for a timed boost, use a Home Assistant
+script with a `delay` step. The External dispatch and VPP modes are not
+offered: they require a continuous EMS heartbeat this integration does not
+send.
 
 Use with care — these change how your inverter and battery operate. A
 low-risk first test is nudging **SOC upper limit** and checking the value in

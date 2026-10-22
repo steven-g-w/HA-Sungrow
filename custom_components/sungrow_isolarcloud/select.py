@@ -40,7 +40,13 @@ class SungrowParamSelect(SungrowControlEntity, SelectEntity):
         self._attr_entity_category = definition.entity_category
 
     def _label_to_value(self) -> dict[str, str]:
-        """Label -> raw value mapping, preferring the API's enumeration."""
+        """Label -> raw value mapping, preferring the API's enumeration.
+
+        The catalog options double as an allowlist: API labels are only
+        kept for raw values the catalog lists, so values we deliberately
+        leave out (e.g. EMS modes needing a heartbeat) stay unselectable.
+        """
+        allowed = set(self._definition.options.values())
         row = self._row(self._definition.code)
         names = row.get("set_val_name")
         values = row.get("set_val_name_val")
@@ -48,7 +54,13 @@ class SungrowParamSelect(SungrowControlEntity, SelectEntity):
             labels = str(names).split("|")
             raw_values = str(values).split("|")
             if len(labels) == len(raw_values):
-                return dict(zip(labels, raw_values))
+                mapping = {
+                    label: raw
+                    for label, raw in zip(labels, raw_values)
+                    if raw in allowed
+                }
+                if mapping:
+                    return mapping
         return dict(self._definition.options)
 
     @property

@@ -240,6 +240,26 @@
       "state": "10.6",
       "unit_of_measurement": "kW"
     },
+    "select:999001_14_1_1_ctl_10003": {
+      "attributes": {
+        "friendly_name": "SH10RT Energy management mode",
+        "options": [
+          "Self-consumption mode",
+          "Compulsory mode"
+        ]
+      },
+      "capabilities": {
+        "options": [
+          "Self-consumption mode",
+          "Compulsory mode"
+        ]
+      },
+      "entity_category": null,
+      "original_device_class": null,
+      "original_name": "Energy management mode",
+      "state": "Self-consumption mode",
+      "unit_of_measurement": null
+    },
     "select:999001_14_1_1_ctl_10004": {
       "attributes": {
         "friendly_name": "SH10RT Charging/discharging command",

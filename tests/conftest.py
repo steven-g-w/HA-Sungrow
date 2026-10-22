@@ -253,6 +253,15 @@ CONTROL_ROWS: list[dict[str, Any]] = [
         "set_precision": "0.1",
     },
     {
+        "param_code": "10003",
+        "return_value": "0",
+        "point_name": "Energy management mode",
+        "unit": "",
+        # Includes modes the catalog leaves out, to cover the allowlist.
+        "set_val_name": "Self-consumption mode|Compulsory mode|External EMS|VPP",
+        "set_val_name_val": "0|2|3|4",
+    },
+    {
         "param_code": "10004",
         "return_value": "204",
         "point_name": "Charging/discharging command",
