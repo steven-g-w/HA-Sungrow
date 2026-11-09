@@ -115,7 +115,7 @@ can also be typed):
 | Europe | `https://gateway.isolarcloud.eu` |
 | China | `https://gateway.isolarcloud.com` |
 | International (rest of world) | `https://gateway.isolarcloud.com.hk` |
-| India | `https://gateway.isolarcloud.in` (not in the dropdown; type it in) |
+| India | `https://gateway.isolarcloud.in` |
 
 Not sure which region you're in? The developer portal documentation page
 shows the gateway list, and the server your iSolarCloud app connects to

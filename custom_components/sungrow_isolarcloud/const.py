@@ -18,6 +18,7 @@ BASE_URLS: list[str] = [
     "https://gateway.isolarcloud.com",  # China
     "https://gateway.isolarcloud.com.hk",  # International
     "https://gateway.isolarcloud.eu",  # Europe
+    "https://gateway.isolarcloud.in",  # India
 ]
 
 CONF_SCAN_INTERVAL = "scan_interval"
