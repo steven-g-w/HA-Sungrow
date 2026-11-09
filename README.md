@@ -70,9 +70,10 @@ needs 2026.3.0+). You'll also need:
 1. An [iSolarCloud](https://www.isolarcloud.com/) account that can see your
    plant.
 2. A developer application on the Sungrow developer portal **for your
-   account's region**: [developer-api.isolarcloud.eu](https://developer-api.isolarcloud.eu/)
+   account's region** (e.g. [developer-api.isolarcloud.eu](https://developer-api.isolarcloud.eu/)
    for Europe, [developer-api.isolarcloud.com](https://developer-api.isolarcloud.com/)
-   otherwise. An app key only works with its own region's gateway.
+   for international; see the guide for others). An app key only works
+   with its own region's gateway.
    - Log in to the portal, open **Applications** and click
      **Create application**.
    - Request access *without* OAuth 2.0 (V1). Approval usually takes a couple

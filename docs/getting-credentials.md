@@ -54,12 +54,17 @@ The app key and secret key come from the Sungrow developer portal.
 > accounts must use the EU portal: an app created on the international
 > portal fails on the EU gateway with `er_invalid_appkey`.
 >
+> Known portals:
+>
 > | Account region | Developer portal |
 > |---|---|
 > | Europe | [developer-api.isolarcloud.eu](https://developer-api.isolarcloud.eu/) |
-> | Everywhere else | [developer-api.isolarcloud.com](https://developer-api.isolarcloud.com/) |
+> | India | [developer-api.isolarcloud.in](https://developer-api.isolarcloud.in/) |
+> | International / other | [developer-api.isolarcloud.com](https://developer-api.isolarcloud.com/) |
 >
-> If you're not sure of your region, read Step 3 first.
+> This list may be incomplete. If your region's iSolarCloud site uses a
+> different domain, look for a matching `developer-api.` portal there. If
+> you're not sure of your region, read Step 3 first.
 
 The screenshots below are from the international portal. Other regional
 portals may look slightly different, but the steps are the same.
@@ -110,6 +115,7 @@ can also be typed):
 | Europe | `https://gateway.isolarcloud.eu` |
 | China | `https://gateway.isolarcloud.com` |
 | International (rest of world) | `https://gateway.isolarcloud.com.hk` |
+| India | `https://gateway.isolarcloud.in` (not in the dropdown; type it in) |
 
 Not sure which region you're in? The developer portal documentation page
 shows the gateway list, and the server your iSolarCloud app connects to
