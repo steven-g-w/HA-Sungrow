@@ -45,11 +45,26 @@ If not, register an account first:
 
 ## Step 2: Create a developer application
 
-The app key and secret key come from the
-[Sungrow developer portal](https://developer-api.isolarcloud.com/).
+The app key and secret key come from the Sungrow developer portal.
 
-1. Go to [developer-api.isolarcloud.com](https://developer-api.isolarcloud.com/)
-   and log in — you can use your iSolarCloud account, or register a
+> [!IMPORTANT]
+> **Create the application on the portal for your account's region.** An
+> app key only works with the gateway of the region where it was created
+> (see [Step 3](#step-3-pick-your-api-gateway)). For example, European
+> accounts must use the EU portal: an app created on the international
+> portal fails on the EU gateway with `er_invalid_appkey`.
+>
+> | Account region | Developer portal |
+> |---|---|
+> | Europe | [developer-api.isolarcloud.eu](https://developer-api.isolarcloud.eu/) |
+> | Everywhere else | [developer-api.isolarcloud.com](https://developer-api.isolarcloud.com/) |
+>
+> If you're not sure of your region, read Step 3 first.
+
+The screenshots below are from the international portal. Other regional
+portals may look slightly different, but the steps are the same.
+
+1. Go to your region's developer portal and log in — you can use your iSolarCloud account, or register a
    developer account if prompted.
 
 ![Sungrow developer portal login page](../images/setup/portal-login.png)
@@ -98,9 +113,20 @@ can also be typed):
 
 Not sure which region you're in? The developer portal documentation page
 shows the gateway list, and the server your iSolarCloud app connects to
-is chosen when the account is created. If setup fails with
-"cannot connect" or "authentication failed" and you're certain the
-credentials are right, try the next plausible gateway.
+is chosen when the account is created.
+
+The gateway has to match **both** your iSolarCloud account and the portal
+where you created your developer application (Step 2). Symptoms of a
+mismatch:
+
+- **`er_invalid_appkey`**: the app key was created on a different
+  region's portal. Create a new application on your region's portal;
+  switching gateways won't fix it.
+- **Login works but "No plants were found"**: the app key is valid on
+  this gateway, but your account and plant live in another region.
+- **"cannot connect" or "authentication failed"** with credentials you're
+  sure are right: try the next plausible gateway, keeping in mind the
+  app key must match it too.
 
 ## Step 4 (optional): Find your plant ID (`ps_id`)
 

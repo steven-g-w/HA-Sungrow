@@ -14,7 +14,9 @@
 > **Still maturing.** This integration runs day to day on the maintainer's
 > own system, and its entities are covered by tests — but it has only been
 > verified against one hardware combination (SH10RT inverter, SBR256
-> battery, WiNet-S dongle). Other Sungrow models may expose different
+> battery, WiNet-S dongle), plus a user report of an SH6.0RS without
+> battery, with an S100 meter, on the EU gateway
+> ([#1](https://github.com/steven-g-w/HA-Sungrow/issues/1)). Other Sungrow models may expose different
 > measuring points and parameters, and breaking changes are still possible
 > before 1.0. Take particular care with the optional control entities:
 > they write settings to your inverter.
@@ -67,8 +69,10 @@ needs 2026.3.0+). You'll also need:
 
 1. An [iSolarCloud](https://www.isolarcloud.com/) account that can see your
    plant.
-2. A developer application on the
-   [Sungrow developer portal](https://developer-api.isolarcloud.com/):
+2. A developer application on the Sungrow developer portal **for your
+   account's region**: [developer-api.isolarcloud.eu](https://developer-api.isolarcloud.eu/)
+   for Europe, [developer-api.isolarcloud.com](https://developer-api.isolarcloud.com/)
+   otherwise. An app key only works with its own region's gateway.
    - Log in to the portal, open **Applications** and click
      **Create application**.
    - Request access *without* OAuth 2.0 (V1). Approval usually takes a couple
@@ -228,6 +232,11 @@ the iSolarCloud app.
 - **Setup fails with "cannot connect"** — verify the gateway matches your
   account's region and that the plant ID (if provided) belongs to this
   account.
+- **`er_invalid_appkey`, or login works but no plants are found** — the
+  developer application was created on a different region's portal than
+  your gateway (e.g. international portal with the EU gateway). Create
+  the application on your region's portal; see
+  [getting-credentials.md](docs/getting-credentials.md#step-3-pick-your-api-gateway).
 - **Setup fails with `catalog.yaml is missing`** — a manual install that
   copied only the Python files. Copy the whole
   `custom_components/sungrow_isolarcloud` folder and restart.
